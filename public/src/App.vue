@@ -1,15 +1,16 @@
 <template>
-  <!-- Don't drop "q-app" class -->
-  <div id="q-app">
-    <router-view />
-  </div>
+	<!-- Don't drop "q-app" class -->
+	<div id="q-app">
+		<router-view/>
+	</div>
 </template>
 
 <script>
-/*
- * Root component
- */
-export default {}
+	/*
+	 * Root component
+	 */
+	export default {}
 </script>
 
-<style></style>
+<style lang="stylus">
+</style>

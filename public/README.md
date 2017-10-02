@@ -1,4 +1,4 @@
-# Quasar App
+# Mage: The Ascension 2nd Edition Improvised Spell Helper
 
 > A Quasar project
 

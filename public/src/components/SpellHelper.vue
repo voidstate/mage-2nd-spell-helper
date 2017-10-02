@@ -1,27 +1,29 @@
 <template>
-	<q-layout ref="layout">
+	<q-layout>
 
 		<!-- Header -->
 		<q-toolbar slot="header" color="primary">
 
-			<q-toolbar-title>
-				Improvised Spell Helper <span slot="subtitle">Mage: The Ascension 2nd Edition</span>
+			<q-toolbar-title @click="$router.push('/')">
+				<a @click="$router.push('/about')"> Improvised Spell Helper </a>
+				<span slot="subtitle">Mage: The Awakening 2nd Edition</span>
+
 			</q-toolbar-title>
 
-			<q-btn flat>
+			<q-btn flat @click="$router.push('/about')">
 				<q-icon name="ion-ios-information"/>
 			</q-btn>
-			<q-btn flat>
+			<q-btn flat @click="$refs.settingsModal.open()">
 				<q-icon name="ion-ios-gear"/>
 			</q-btn>
 			<div class="toolbar-spacer gt-sm">|</div>
-			<q-btn flat v-on:click="open('mailto:rpg@voidstate.com')">
+			<q-btn flat @click="open('mailto:rpg@voidstate.com')">
 				<q-icon name="ion-ios-email"/>
 				<q-tooltip>
-					<small>Bugs, typos, suggestions, beer? Drop me a line.</small>
+					<small>Bugs, typos, suggestions, buy me a beer? Drop me a line.</small>
 				</q-tooltip>
 			</q-btn>
-			<q-btn flat v-on:click="open('https://github.com/voidstate')">
+			<q-btn flat @click="open('https://github.com/voidstate/mage-2nd-spell-helper')">
 				<q-icon name="ion-social-github"/>
 				<q-tooltip>
 					<small>Visit Github repo</small>
@@ -30,7 +32,39 @@
 		</q-toolbar>
 
 		<!-- Stepper -->
-		<q-stepper color="secondary" ref="stepper" alternative-labels contractable>
+		<q-toolbar slot="footer" class="fixed-bottom footer">
+			<q-toolbar-title>
+				<q-chip icon="ion-ios-bolt-outline" id="footer-reach-chip" class="info" small>
+					<span class="footer-chip-inner">
+						<span class="footer-chip-label gt-xs">Reach</span> {{ usedReach }}/{{ freeReach }}
+					</span>
+				</q-chip>
+				<q-chip icon="ion-ios-analytics-outline" id="footer-dice-pool-chip" class="info" v-bind:class="{ warning: isDicePoolTooLow }" small>
+					<span class="footer-chip-inner">
+						<span class="footer-chip-label gt-xs">Dice pool</span> {{ dicePool }}
+					</span>
+					<q-tooltip v-if="isDicePoolTooLow" class="warning">
+						If the dice pool, after Yantras, is -6 or less, the spell is impossible
+					</q-tooltip>
+				</q-chip>
+				<q-chip icon="ion-ios-pulse" id="footer-mana-chip" class="info" small>
+					<span class="footer-chip-inner">
+						<span class="footer-chip-label gt-xs">Mana</span> {{ totalMana }}
+					</span>
+				</q-chip>
+				<q-chip icon="ion-ios-flower" id="footer-paradox-chip" class="warning" small v-bind:class="{ hidden: !hasParadox }">
+					<span class="footer-chip-inner">
+						<span class="footer-chip-label gt-xs">Paradox</span> {{ paradoxDice }}
+					</span>
+					<q-tooltip class="warning">
+						You have exceeded the free reach from your Arcanum and must roll for Paradox
+					</q-tooltip>
+				</q-chip>
+			</q-toolbar-title>
+		</q-toolbar>
+
+		<!-- Footer -->
+		<q-stepper color="secondary" ref="stepper" alternative-labels contractable v-model="currentStep">
 
 			<q-step default name="first" title="Spell Overview" icon="ion-ios-star-outline" active-icon="ion-ios-star-outline" done-icon="ion-ios-star-outline">
 
@@ -69,13 +103,13 @@
 
 								<div class="fieldset">
 									<h6>Is {{ caster.arcanaName }} the Mage's Highest Arcanum?</h6>
-									<q-toggle v-model="caster.isHighestArcana"/>
+									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="caster.isHighestArcana"/>
 								</div>
 
 								<div class="fieldset">
 									<q-field helper="Spell from a Common or Inferior arcanum cost one Mana to cast (unless the spell is a Praxis).">
-									<h6>Is {{ caster.arcanaName }} One of the Mage's Ruling Arcana?</h6>
-									<q-toggle v-model="caster.isRulingArcana"/>
+										<h6>Is {{ caster.arcanaName }} One of the Mage's Ruling Arcana?</h6>
+										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="caster.isRulingArcana"/>
 									</q-field>
 								</div>
 
@@ -98,7 +132,9 @@
 							<q-card-title>
 								Spell
 							</q-card-title>
+
 							<q-card-separator/>
+
 							<q-card-main>
 
 								<div class="fieldset">
@@ -107,16 +143,16 @@
 								</div>
 
 								<div class="fieldset">
-									<q-field helper="Praxes only require three successes for an exceptional success, and do not require a Mana if the spell if from a Common or Inferior arcanum.">
-										<h6>Is the Spell a Praxis?</h6>
-										<q-toggle v-model="spell.isPraxis"/>
+									<q-field helper="The Primary Factor is boosted up to the caster's Arcanum rating without incurring a penalty.">
+										<h6>Primary Factor</h6>
+										<q-select v-model="spell.primaryFactor" :options="spellFactorOptions"/>
 									</q-field>
 								</div>
 
 								<div class="fieldset">
-									<q-field helper="The factor that will be influenced by the successes on the spellcating dice roll.">
-										<h6>Primary Factor</h6>
-										<q-select v-model="spell.primaryFactor" :options="spellFactorOptions"/>
+									<q-field helper="Praxes only require three successes for an exceptional success, and do not require a Mana if the spell if from a Common or Inferior arcanum.">
+										<h6>Is the Spell a Praxis?</h6>
+										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isPraxis"/>
 									</q-field>
 								</div>
 
@@ -130,7 +166,7 @@
 								<div class="fieldset">
 									<q-field helper="Adds +3 dice">
 										<h6>Spend Willpower?</h6>
-										<q-toggle v-model="spell.spendWillpower"/>
+										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.spendWillpower"/>
 									</q-field>
 								</div>
 							</q-card-main>
@@ -152,7 +188,7 @@
 
 								<div class="fieldset">
 									<h6>Is the Spell Resisted?</h6>
-									<q-toggle v-model="subject.isResisted"/>
+									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="subject.isResisted"/>
 								</div>
 
 								<div v-bind:class="{ hidden: !subject.isResisted }" class="fieldset">
@@ -177,7 +213,8 @@
 				</div>
 
 				<q-stepper-navigation>
-					<q-btn color="secondary" @click="stepNext()">Next</q-btn>
+					<q-btn id="step-button-first" color="secondary" flat @click="resetData()">Reset</q-btn>
+					<q-btn id="step-button-first" color="secondary" @click="stepNext()">Next</q-btn>
 				</q-stepper-navigation>
 			</q-step>
 
@@ -203,7 +240,7 @@
 
 							<q-card-main>
 								<q-list>
-									<q-collapsible label="Standard" group="casting-time" opened>
+									<q-collapsible label="Standard" group="casting-time" :opened="!isAdvanced('castingTime')">
 										<p>
 											<b>Ritual Casting Time</b>
 										</p>
@@ -212,13 +249,32 @@
 										</div>
 									</q-collapsible>
 
-									<q-collapsible label="Advanced" group="casting-time">
+									<q-collapsible label="Advanced" group="casting-time" :opened="isAdvanced('castingTime')">
 
 										<q-field helper="Using more than one yantra (or High Speech) will increase this time.">
 											<label>
 												<q-radio v-model="spell.factors.castingTime" val="a1"/>
 												<b>Quick casting time:</b>1 Turn </label>
 										</q-field>
+
+										<q-list link class="attainments" v-show="settings.showAttainments">
+											<q-list-header>Attainments</q-list-header>
+
+											<q-item multiline tag="label">
+												<q-item-main>
+													<q-item-tile label>
+														Time in a Bottle (Time <span class="arcana-dot">&#9679;&#9679;&#9679;&#9679;</span>)
+													</q-item-tile>
+													<q-item-tile sublabel>
+														Advanced Casting Time costs 1 Mana instead of 1 Reach.
+													</q-item-tile>
+												</q-item-main>
+												<q-item-side right>
+													<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.attainments.timeInABottle"/>
+												</q-item-side>
+											</q-item>
+										</q-list>
+
 									</q-collapsible>
 
 								</q-list>
@@ -235,8 +291,12 @@
 							<q-card-title>
 								<q-icon name="ion-ios-clock" class="smaller"/>
 								Duration
-								<q-chip icon="ion-ios-medical" class="primary-factor-chip pull-right" v-bind:class="{ hidden: spell.primaryFactor !== 'duration' }">
-									Primary Factor
+								<q-chip class="primary-factor-chip pull-right" v-bind:class="{ hidden: spell.primaryFactor !== 'duration' }">
+									<q-icon name="ion-ios-medical"/>
+									<span class="gt-xs">Primary Factor</span>
+									<q-tooltip class="lt-sm">
+										Primary Factor
+									</q-tooltip>
 								</q-chip>
 							</q-card-title>
 
@@ -244,67 +304,36 @@
 
 							<q-card-main>
 								<q-list>
-									<q-collapsible label="Standard" group="duration" opened>
-										<template v-if="spell.primaryFactor != 'duration'">
-											<q-field helper="For additional duration, add 10 turns per additional -2 dice">
-												<div v-for="duration in standardDurationOptions" :key="duration.key">
-													<q-radio v-model="spell.factors.duration" :val="duration.key" :label="duration.label"/>
-												</div>
-											</q-field>
-										</template>
-										<template v-else>
-											<div class="fieldset">
-												<q-radio v-model="spell.factors.duration" val="s1" label="<b>Standard:</b> Each success increases the spell's duration."/>
-											</div>
+									<q-collapsible label="Standard" group="duration"  :opened="!isAdvanced('duration')">
 
-											<q-field helper="Additional successes add 10 turns per success.">
-												<table class="q-table">
-													<thead>
-													<tr>
-														<th>Successes</th>
-														<th>Duration</th>
-													</tr>
-													</thead>
-													<tbody>
-													<tr v-for="duration in standardDurationOptions" :key="duration.key">
-														<td>{{ duration.successes }}</td>
-														<td>{{ duration.time }}</td>
-													</tr>
-													</tbody>
-												</table>
-											</q-field>
+										<div v-for="duration in standardDurationOptions" :key="duration.key">
+											<q-radio v-model="spell.factors.duration" :val="duration.key" :label="duration.label"/>
+										</div>
 
-										</template>
 									</q-collapsible>
 
-									<q-collapsible label="Advanced" group="duration">
+									<q-collapsible label="Advanced" group="duration" :opened="isAdvanced('duration')">
 
-										<template v-if="spell.primaryFactor != 'duration'">
-											<div v-for="duration in advancedDurationOptions" :key="duration.key">
-												<q-radio v-model="spell.factors.duration" :val="duration.key" :label="duration.label"/>
-											</div>
-										</template>
-										<template v-else>
-											<div class="fieldset">
-												<q-radio v-model="spell.factors.duration" val="a1" label="<b>Advanced:</b> Each success increases the spell's duration."/>
-											</div>
+										<div v-for="duration in advancedDurationOptions" :key="duration.key">
+											<q-radio v-model="spell.factors.duration" :val="duration.key" :label="duration.label"/>
+										</div>
 
-											<table class="q-table">
-												<thead>
-												<tr>
-													<th>Successes</th>
-													<th>Duration</th>
-												</tr>
-												</thead>
-												<tbody>
-												<tr v-for="duration in advancedDurationOptions" :key="duration.key">
-													<td>{{ duration.successes }}</td>
-													<td>{{ duration.time }}</td>
-												</tr>
-												</tbody>
-											</table>
-
-										</template>
+										<q-list link class="attainments" v-show="settings.showAttainments && caster.arcanaName === 'Matter'">
+											<q-list-header>Attainments</q-list-header>
+											<q-item multiline tag="label">
+												<q-item-main>
+													<q-item-tile label>
+														Permanence (Matter <span class="arcana-dot">&#9679;&#9679;</span>)
+													</q-item-tile>
+													<q-item-tile sublabel>
+														Advanced Scale costs 1 Mana instead of 1 Reach.
+													</q-item-tile>
+												</q-item-main>
+												<q-item-side right>
+													<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.attainments.permanence"/>
+												</q-item-side>
+											</q-item>
+										</q-list>
 
 									</q-collapsible>
 
@@ -321,8 +350,12 @@
 							<q-card-title>
 								<q-icon name="ion-ios-flame"/>
 								Potency
-								<q-chip icon="ion-ios-medical" class="primary-factor-chip pull-right" v-bind:class="{ hidden: spell.primaryFactor !== 'potency' }">
-									Primary Factor
+								<q-chip class="primary-factor-chip pull-right" v-bind:class="{ hidden: spell.primaryFactor !== 'potency' }">
+									<q-icon name="ion-ios-medical"/>
+									<span class="gt-xs">Primary Factor</span>
+									<q-tooltip class="lt-sm">
+										Primary Factor
+									</q-tooltip>
 								</q-chip>
 							</q-card-title>
 
@@ -336,33 +369,28 @@
 								</div>
 
 								<q-list>
-									<q-collapsible label="Standard" group="potency" opened>
+
+									<q-collapsible label="Standard" group="potency"  :opened="!isAdvanced('potency')">
 										<div>
-											<template v-if="spell.primaryFactor != 'potency'">
-												<div v-for="potency in standardPotencyOptions" :key="potency.key">
-													<q-radio v-model="spell.factors.potency" :val="potency.key" :label="potency.label" :disable="potency.value <= totalWithstand"/>
-												</div>
-											</template>
-											<template v-else>
-												<q-radio v-model="spell.factors.potency" val="s1" label="<b>Standard:</b> Each success provides 1 Potency."/>
-											</template>
+											<div v-for="potency in standardPotencyOptions" :key="potency.key">
+												<q-radio v-model="spell.factors.potency" :val="potency.key" :label="potency.label" :disable="potency.value <= totalWithstand"/>
+												<q-tooltip class="warning" v-show="potency.value <= totalWithstand">
+													Potency must exceed the subject's Withstand of {{ totalWithstand }}
+												</q-tooltip>
+											</div>
 										</div>
 									</q-collapsible>
-									<q-collapsible label="Advanced" group="potency">
-										<div>
-											<template v-if="spell.primaryFactor != 'potency'">
-												<q-field helper="Advanced Potency grants an additional -2 to Withstand.">
-													<div v-if="spell.primaryFactor != 'potency'" v-for="potency in advancedPotencyOptions" :key="potency.key">
-														<q-radio v-model="spell.factors.potency" :val="potency.key" :label="potency.label" :disable="potency.value <= totalWithstand"/>
-													</div>
-												</q-field>
-											</template>
-											<template v-else>
-												<q-field helper="Advanced Potency grants an additional -2 to Withstand.">
-													<q-radio v-model="spell.factors.potency" val="a1" label="<b>Advanced:</b> Each success provides 1 Potency."/>
-												</q-field>
-											</template>
 
+									<q-collapsible label="Advanced" group="potency" :opened="isAdvanced('potency')">
+										<div>
+											<q-field helper="Advanced Potency grants an additional -2 to Withstand.">
+												<div v-for="potency in advancedPotencyOptions" :key="potency.key">
+													<q-radio v-model="spell.factors.potency" :val="potency.key" :label="potency.label" :disable="potency.value <= ( totalWithstand - 2 )"/>
+													<q-tooltip class="warning" v-show="potency.value <= ( totalWithstand - 2 )">
+														Potency must exceed the subject's Withstand of {{ totalWithstand - 2 }}
+													</q-tooltip>
+												</div>
+											</q-field>
 										</div>
 									</q-collapsible>
 
@@ -375,7 +403,7 @@
 					<!-- Range -->
 					<div class="col-xs-12 col-sm-6 col-xl-4">
 
-						<q-card v-bind:class="{'primary-factor': spell.primaryFactor === 'range'}">
+						<q-card>
 							<q-card-title>
 								<q-icon name="ion-ios-eye"/>
 								Range
@@ -385,15 +413,53 @@
 
 							<q-card-main>
 								<q-list>
-									<q-collapsible label="Standard" group="range" opened>
+
+									<q-collapsible label="Standard" group="range"  :opened="!isAdvanced('range')">
 										<label>
 											<q-radio v-model="spell.factors.range" val="s1"/>
 											<b>Standard:</b> Self/touch or Aimed </label>
 									</q-collapsible>
-									<q-collapsible label="Advanced" group="range">
-										<label>
-											<q-radio v-model="spell.factors.range" val="a1"/>
-											<b>Advanced:</b> Sensory </label>
+
+									<q-collapsible label="Advanced" group="range" :opened="isAdvanced('range')">
+										<p>
+											<label>
+												<q-radio v-model="spell.factors.range" val="a1"/>
+												<b>Advanced:</b> Sensory </label>
+										</p>
+
+										<q-list link class="attainments" v-show="settings.showAttainments">
+											<q-list-header>Attainments</q-list-header>
+
+											<q-item multiline tag="label">
+												<q-item-main>
+													<q-item-tile label>
+														Sympathetic Range (Space <span class="arcana-dot">&#9679;&#9679;</span>)
+													</q-item-tile>
+													<q-item-tile sublabel>
+														Subject can be beyond sensory range. Requires Advanced Range, a sympathy Yantra and costs +1 Mana.
+													</q-item-tile>
+												</q-item-main>
+												<q-item-side right>
+													<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.attainments.sympatheticRange"/>
+												</q-item-side>
+											</q-item>
+
+											<q-item multiline tag="label">
+												<q-item-main>
+													<q-item-tile label>
+														Temporal Sympathy (Time <span class="arcana-dot">&#9679;&#9679;</span>)
+													</q-item-tile>
+													<q-item-tile sublabel>
+														Cast a spell at subject's past self. Requires Advanced Range, a sympathy Yantra and costs +1 Mana. Can only be used with Time spells that allow it or spells combined with them.
+													</q-item-tile>
+												</q-item-main>
+												<q-item-side right>
+													<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.attainments.temporalSympathy"/>
+												</q-item-side>
+											</q-item>
+
+										</q-list>
+
 									</q-collapsible>
 
 								</q-list>
@@ -403,25 +469,50 @@
 					</div>
 
 					<!-- Scale -->
-					<div class="col-xs-12 col-sm-6 col-xl-4" v-bind:class="{'order-first': spell.primaryFactor === 'scale'}">
+					<div class="col-xs-12 col-sm-6 col-xl-4">
 
-						<q-card v-bind:class="{'primary-factor': spell.primaryFactor === 'scale'}">
+						<q-card>
 
 							<q-card-title icon="ion-ios-people-outline">
 								<q-icon name="ion-ios-people"/>
 								Scale
-								<q-chip icon="ion-ios-medical" class="primary-factor-chip pull-right" v-bind:class="{ hidden: spell.primaryFactor !== 'scale' }">
-									Primary Factor
-								</q-chip>
 							</q-card-title>
 
 							<q-card-separator/>
 
 							<q-card-main>
 								<q-list>
-									<q-collapsible label="Standard" group="scale" opened>
-										<template v-if="spell.primaryFactor != 'scale'">
+									<q-collapsible label="Standard" group="scale"  :opened="!isAdvanced('scale')">
 
+										<table class="q-table highlight responsive compact">
+											<thead>
+											<tr>
+												<th></th>
+												<th class="text-left">Number of Subjects</th>
+												<th class="text-left">Size of Largest Subject</th>
+												<th class="text-left">Area of Effect</th>
+												<th class="text-left">Dice Penalty</th>
+											</tr>
+											</thead>
+											<tbody>
+											<tr v-for="scale in standardScaleOptions" :key="scale.key">
+												<td>
+													<q-radio v-model="spell.factors.scale" :val="scale.key"/>
+												</td>
+												<td data-th="Number of Subjects">{{ scale.number }}</td>
+												<td data-th="Size of Largest Subject">{{ scale.size }}</td>
+												<td data-th="Area of Effect">
+													<small>{{ scale.area }}</small>
+												</td>
+												<td data-th="Dice Penalty">{{ scale.penalty }} dice</td>
+											</tr>
+											</tbody>
+										</table>
+
+									</q-collapsible>
+
+									<q-collapsible label="Advanced" group="scale" :opened="isAdvanced('scale')">
+										<q-field helper="Additional scale doubles the number of subjects and adds 5 size per additional -2 dice penalty.">
 											<table class="q-table highlight responsive compact">
 												<thead>
 												<tr>
@@ -433,102 +524,37 @@
 												</tr>
 												</thead>
 												<tbody>
-												<tr v-for="scale in standardScaleOptions" :key="scale.key">
+												<tr v-for="scale in advancedScaleOptions" :key="scale.key">
 													<td>
 														<q-radio v-model="spell.factors.scale" :val="scale.key"/>
 													</td>
 													<td data-th="Number of Subjects">{{ scale.number }}</td>
 													<td data-th="Size of Largest Subject">{{ scale.size }}</td>
-													<td data-th="Area of Effect">
-														<small>{{ scale.area }}</small>
-													</td>
+													<td data-th="Area of Effect" class="small">{{ scale.area }}</td>
 													<td data-th="Dice Penalty">{{ scale.penalty }} dice</td>
 												</tr>
 												</tbody>
 											</table>
+										</q-field>
 
-										</template>
-										<template v-else>
-											<div class="fieldset">
-												<q-radio v-model="spell.factors.scale" val="s1" label="<b>Standard:</b> Each success increases the spell's scale."/>
-											</div>
+										<q-list link class="attainments" v-show="settings.showAttainments">
+											<q-list-header>Attainments</q-list-header>
 
-											<table class="q-table q-table highlight responsive compact">
-												<thead>
-												<tr>
-													<th class="text-left">Successes</th>
-													<th class="text-left">Number of Subjects</th>
-													<th class="text-left">Size of Largest Subject</th>
-													<th class="text-left">Area of Effect</th>
-												</tr>
-												</thead>
-												<tbody>
-												<tr v-for="scale in standardScaleOptions" :key="scale.key">
-													<td>{{ scale.value }}</td>
-													<td data-th="Number of Subjects">{{ scale.number }}</td>
-													<td data-th="Size of Largest Subject">{{ scale.size }}</td>
-													<td data-th="Area of Effect">
-														<small>{{ scale.area }}</small>
-													</td>
-												</tr>
-												</tbody>
-											</table>
+											<q-item multiline tag="label">
+												<q-item-main>
+													<q-item-tile label>
+														Everywhere (Space <span class="arcana-dot">&#9679;&#9679;&#9679;&#9679;</span>)
+													</q-item-tile>
+													<q-item-tile sublabel>
+														Advanced Scale costs 1 Mana instead of 1 Reach
+													</q-item-tile>
+												</q-item-main>
+												<q-item-side right>
+													<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.attainments.everywhere"/>
+												</q-item-side>
+											</q-item>
+										</q-list>
 
-										</template>
-									</q-collapsible>
-
-									<q-collapsible label="Advanced" group="scale">
-										<template v-if="spell.primaryFactor != 'scale'">
-											<q-field helper="Additional scale doubles the number of subjects and adds 5 size per additional -2 dice penalty.">
-												<table class="q-table highlight responsive compact">
-													<thead>
-													<tr>
-														<th></th>
-														<th class="text-left">Number of Subjects</th>
-														<th class="text-left">Size of Largest Subject</th>
-														<th class="text-left">Area of Effect</th>
-														<th class="text-left">Dice Penalty</th>
-													</tr>
-													</thead>
-													<tbody>
-													<tr v-for="scale in advancedScaleOptions" :key="scale.key">
-														<td>
-															<q-radio v-model="spell.factors.scale" :val="scale.key"/>
-														</td>
-														<td data-th="Number of Subjects">{{ scale.number }}</td>
-														<td data-th="Size of Largest Subject">{{ scale.size }}</td>
-														<td data-th="Area of Effect" class="small">{{ scale.area }}</td>
-														<td data-th="Dice Penalty">{{ scale.penalty }} dice</td>
-													</tr>
-													</tbody>
-												</table>
-											</q-field>
-										</template>
-										<template v-else>
-											<div class="fieldset">
-												<q-radio v-model="spell.factors.scale" val="a1" label="<b>Advanced:</b> Each success increases the spell's scale."/>
-											</div>
-
-											<table class="q-table highlight responsive compact">
-												<thead>
-												<tr>
-													<th class="text-left">Successes</th>
-													<th class="text-left">Number of Subjects</th>
-													<th class="text-left">Size of Largest Subject</th>
-													<th class="text-left">Area of Effect</th>
-												</tr>
-												</thead>
-												<tbody>
-												<tr v-for="scale in advancedScaleOptions" :key="scale.key">
-													<td>{{ scale.value }}</td>
-													<td data-th="Number of Subjects">{{ scale.number }}</td>
-													<td data-th="Size of Largest Subject">{{ scale.size }}</td>
-													<td data-th="Area of Effect" class="small">{{ scale.area }}</td>
-												</tr>
-												</tbody>
-											</table>
-
-										</template>
 									</q-collapsible>
 
 								</q-list>
@@ -610,7 +636,6 @@
 									<q-field :helper="yantra.desc">
 										<template v-if="yantra.key === 'a1'">
 											<q-checkbox v-model="spell.yantras" :val="yantra.key" :label="yantra.label" :disable="!isConcentrationMantraAllowed">
-
 												<q-tooltip class="warning" v-bind:class="{ hidden: isConcentrationMantraAllowed }">
 													Duration must be more than 1 turn
 												</q-tooltip>
@@ -639,7 +664,11 @@
 								<div v-for="yantra in toolYantraOptions" :key="yantra.key" class="fieldset">
 									<q-field :helper="yantra.desc">
 										<q-checkbox v-model="spell.yantras" :val="yantra.key" :label="yantra.label"/>
+
 									</q-field>
+									<q-tooltip v-if="[ 't2', 't3' ].includes( yantra.key ) && ( spell.attainments.sympatheticRange || spell.attainments.temporalSympathy )" class="warning">
+										Does not grant a bonus when used with the Sympathetic Range or Temporal Sympathy Attainments.
+									</q-tooltip>
 								</div>
 							</q-card-main>
 						</q-card>
@@ -680,7 +709,7 @@
 								<div class="fieldset">
 									<q-field helper="A mage is Inured once they no longer risk losing Wisdom from a spell.">
 										<h6>Is the Mage's Inured to this Spell? (+2 dice)</h6>
-										<q-toggle v-model="paradox.inured"/>
+										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="paradox.inured"/>
 									</q-field>
 								</div>
 
@@ -693,7 +722,7 @@
 
 								<div class="fieldset">
 									<h6>Are There Any Sleeper Witnesses?</h6>
-									<q-toggle v-model="paradox.sleepers"/>
+									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="paradox.sleepers"/>
 								</div>
 
 								<div class="fieldset" v-show="paradox.sleepers">
@@ -710,7 +739,7 @@
 								<div class="fieldset">
 									<q-field helper="This option is also in the Yantras section.">
 										<h6>A Dedicated Magical Tool was Used? (-2 dice)</h6>
-										<q-toggle v-model="isDedicatedToolYantraUsed"/>
+										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="isDedicatedToolYantraUsed"/>
 									</q-field>
 								</div>
 
@@ -776,17 +805,16 @@
 										This spell requires a Paradox roll. Roll for Paradox first.
 									</div>
 
-									<h6>Dice pool</h6>
-									<p>
-										{{ paradoxDiceSummary }}
-										<q-btn small flat @click="showParadoxManaModal()" title="Add">
-											<q-icon name="ion-ios-plus"></q-icon>
-										</q-btn>
-									</p>
+									<q-field helper="For Paradox roll results, see Mage: the Awakening 2nd Edition, p. 115">
+										<h6>Dice pool</h6>
+										<p>
+											{{ paradoxDiceSummary }}
+											<q-btn small flat @click="showParadoxManaModal()" title="Add">
+												<q-icon name="ion-ios-plus"></q-icon>
+											</q-btn>
+										</p>
+									</q-field>
 
-									<p class="text-muted">
-										<small>For Paradox roll results, see Mage: the Awakening 2nd Edition, p. 115</small>
-									</p>
 								</div>
 
 							</q-card-main>
@@ -823,12 +851,18 @@
 
 							<q-card-main>
 
-								<div class="alert-bar alert-bar-warning" v-bind:class="{ hidden: isCastable }">
+								<div class="alert-bar alert-bar-warning" v-show="isDicePoolTooLow">
 									<q-icon name="ion-alert-circled"/>
 									This spell is too complex and automatically fails.
 								</div>
 
-								<div v-bind:class="{ hidden: !isCastable }">
+								<div class="alert-bar alert-bar-warning" v-show="isSympatheticYantraMissing">
+									<q-icon name="ion-alert-circled"/>
+									This spell has Sympathetic Range but does not include any sympathetic Yantras.
+									<q-btn flat @click="stepThird()">Back to Yantras</q-btn>
+								</div>
+
+								<div v-show="isCastable">
 
 									<div class="alert-bar alert-bar-warning" v-show="isPrimaryFactor( 'potency' ) && subject.isResisted">
 										<q-icon name="ion-alert-circled"/>
@@ -847,7 +881,7 @@
 									</p>
 
 									<h6>Mana Cost</h6>
-									<p>{{ totalMana }} </p>
+									<p>{{ totalMana }}</p>
 
 									<h6>Dice Pool</h6>
 									<p>{{ dicePoolSummary }}
@@ -856,137 +890,73 @@
 										</q-btn>
 									</p>
 
-									<h6>Primary Factor</h6>
-									<p>{{ primaryFactorLabel }}</p>
-
 									<h6>Successes</h6>
+									<p>A single success means the spell takes place. For exceptional successes, see p. 115.</p>
 
-									<p>A single success means the spell takes place.</p>
+									<div v-bind:class="{ hidden: !subject.isResisted }">
 
-									<!-- Primary Duration -->
-									<q-field v-show="isPrimaryFactor( 'duration' ) && !isAdvanced( 'duration')" helper="Additional successes add 10 turns per success.">
-										<table class="q-table">
-											<thead>
-											<tr>
-												<th>Successes</th>
-												<th>Duration</th>
-											</tr>
-											</thead>
+										<h6>Withstand</h6>
+										<p>{{ totalWithstand }}</p>
+
+										<p v-show="isAdvanced( 'potency')" class="text-muted">
+											Advanced Potency has granted -2 to Withstand.
+										</p>
+
+									</div>
+
+									<!-- Factors -->
+									<q-field helper="As a general rule, each point of Potency grants a one-die bonus or penalty, deals one point of weapon damage, or heals one wound.">
+										<h6>Spell Factors</h6>
+										<table class="q-table vertical-table">
 											<tbody>
-											<tr v-for="duration in standardDurationOptions" :key="duration.key">
-												<td>{{ duration.successes }}</td>
-												<td>{{ duration.time }}</td>
+											<tr>
+												<th>
+													Casting Time
+													<span v-show="isAdvanced('castingTime')" class="small text-muted"><br>Advanced</span>
+												</th>
+												<td>
+													{{ castingTimeSummary }}
+												</td>
+											</tr>
+											<tr>
+												<th>
+													Duration
+													<span v-show="isAdvanced('duration')" class="small text-muted"><br>Advanced</span>
+													<span v-show="isPrimaryFactor('duration')" class="small text-muted"><br>Primary</span>
+												</th>
+												<td>
+													{{ durationSummary }}
+												</td>
+											</tr>
+											<tr>
+												<th>
+													Potency
+													<span v-show="isAdvanced('potency')" class="small text-muted"><br>Advanced</span>
+													<span v-show="isPrimaryFactor('potency')" class="small text-muted"><br>Primary</span>
+												</th>
+												<td>
+													{{ potencySummary }}
+												</td>
+											</tr>
+											<tr>
+												<th>
+													Range <span v-show="isAdvanced('range')" class="small text-muted"><br>Advanced</span>
+												</th>
+												<td>
+													{{ rangeSummary }}
+												</td>
+											</tr>
+											<tr>
+												<th>
+													Scale <span v-show="isAdvanced('scale')" class="small text-muted"><br>Advanced</span>
+												</th>
+												<td>
+													{{ scaleSummary }}
+												</td>
 											</tr>
 											</tbody>
 										</table>
 									</q-field>
-									<table class="q-table" v-show="isPrimaryFactor( 'duration' ) && isAdvanced( 'duration')">
-										<thead>
-										<tr>
-											<th>Successes</th>
-											<th>Duration</th>
-										</tr>
-										</thead>
-										<tbody>
-										<tr v-for="duration in advancedDurationOptions" :key="duration.key">
-											<td>{{ duration.successes }}</td>
-											<td>{{ duration.time }}</td>
-										</tr>
-										</tbody>
-									</table>
-
-									<!-- Primary Potency -->
-									<p v-show="isPrimaryFactor( 'potency' )">
-										Each success provides 1 Potency.
-										<template v-show="isPrimaryFactor( 'potency' ) && isAdvanced( 'potency')">
-											Advanced Potency grants an additional -2 to Withstand.
-										</template>
-									</p>
-
-									<!-- Primary Scale -->
-									<table v-show="isPrimaryFactor( 'scale' ) && !isAdvanced( 'scale')" class="q-table q-table highlight responsive compact">
-										<thead>
-										<tr>
-											<th class="text-left">Successes</th>
-											<th class="text-left">Number of Subjects</th>
-											<th class="text-left">Size of Largest Subject</th>
-											<th class="text-left">Area of Effect</th>
-										</tr>
-										</thead>
-										<tbody>
-										<tr v-for="scale in standardScaleOptions" :key="scale.key">
-											<td data-th="Successes">{{ scale.value }}</td>
-											<td data-th="Number of Subjects">{{ scale.number }}</td>
-											<td data-th="Size of Largest Subject">{{ scale.size }}</td>
-											<td data-th="Area of Effect" class="small">{{ scale.area }}</td>
-										</tr>
-										</tbody>
-									</table>
-									<q-field v-show="isPrimaryFactor( 'scale' ) && isAdvanced( 'scale')" helper="Additional scale doubles the number of subjects and adds 5 size per additional -2 dice penalty.">
-										<table class="q-table highlight responsive compact">
-											<thead>
-											<tr>
-												<th class="text-left">Successes</th>
-												<th class="text-left">Number of Subjects</th>
-												<th class="text-left">Size of Largest Subject</th>
-												<th class="text-left">Area of Effect</th>
-											</tr>
-											</thead>
-											<tbody>
-											<tr v-for="scale in standardScaleOptions" :key="scale.key">
-												<td data-th="Successes">{{ scale.value }}</td>
-												<td data-th="Number of Subjects">{{ scale.number }}</td>
-												<td data-th="Size of Largest Subject">{{ scale.size }}</td>
-												<td data-th="Area of Effect" class="small">{{ scale.area }}</td>
-											</tr>
-											</tbody>
-										</table>
-									</q-field>
-
-									<p class="text-muted">
-										<small>For exceptional successes, see Mage: the Awakening 2nd Edition, p. 115</small>
-									</p>
-
-									<!-- Others -->
-									<h6>Other Factors</h6>
-									<table class="q-table vertical-table">
-										<tbody>
-										<tr>
-											<th>Casting Time</th>
-											<td>
-												{{ castingTimeSummary }}
-											</td>
-										</tr>
-										<tr>
-											<th v-show="!isPrimaryFactor( 'duration' )">Duration</th>
-											<td v-show="!isPrimaryFactor( 'duration' )">
-												{{ durationSummary }}
-											</td>
-										</tr>
-										<tr>
-											<th v-show="!isPrimaryFactor( 'potency' )">Potency</th>
-											<td v-show="!isPrimaryFactor( 'potency' )">
-												{{ potencySummary }}
-											</td>
-										</tr>
-										<tr>
-											<th>Range</th>
-											<td>
-												{{ rangeSummary }}
-											</td>
-										</tr>
-										<tr>
-											<th v-show="!isPrimaryFactor( 'scale' )">Scale</th>
-											<td v-show="!isPrimaryFactor( 'scale' )">
-												{{ scaleSummary }}
-											</td>
-										</tr>
-										</tbody>
-									</table>
-
-									<p class="text-muted">
-										<small>As a general rule, each point of Potency grants a one-die bonus or penalty, deals one point of weapon damage, or heals one wound.</small>
-									</p>
 
 								</div>
 
@@ -994,39 +964,44 @@
 						</q-card>
 
 					</div>
-
-					<q-stepper-navigation>
-						<q-btn color="secondary" @click="stepFirst()">Restart</q-btn>
-						<q-btn color="secondary" flat @click="stepPrevious()">Back</q-btn>
-					</q-stepper-navigation>
-
 				</div>
+				<q-stepper-navigation>
+					<q-btn color="secondary" @click="stepFirst()">Restart</q-btn>
+					<q-btn color="secondary" flat @click="stepPrevious()">Back</q-btn>
+				</q-stepper-navigation>
 			</q-step>
 		</q-stepper>
 
-		<!-- Footer -->
-		<q-toolbar slot="footer" class="fixed-bottom">
-			<q-toolbar-title>
-				<q-chip icon="ion-ios-bolt-outline" class="info" small>
-					<span class="footer-chip-label gt-xs">Reach</span> {{ usedReach }}/{{ freeReach }}
-				</q-chip>
-				<q-chip icon="ion-ios-analytics-outline" class="info" v-bind:class="{ warning: isDicePoolTooLow }" small>
-					<span class="footer-chip-label gt-xs">Dice pool</span> {{ dicePool }}
-					<q-tooltip v-if="isDicePoolTooLow">
-						If the dice pool, after Yantras, is -6 or less, the spell is impossible
-					</q-tooltip>
-				</q-chip>
-				<q-chip icon="ion-ios-pulse" class="info" small>
-					<span class="footer-chip-label gt-xs">Mana</span> {{ totalMana }}
-				</q-chip>
-				<q-chip icon="ion-ios-flower" class="warning" small v-bind:class="{ hidden: !hasParadox }">
-					<span class="footer-chip-label gt-xs">Paradox</span> {{ paradoxDice }}
-					<q-tooltip>
-						You have exceeded the free reach from your Arcanum and may cause Paradox
-					</q-tooltip>
-				</q-chip>
-			</q-toolbar-title>
-		</q-toolbar>
+		<q-modal ref="settingsModal" position="top" class="settings-modal">
+			<q-card>
+				<q-card-title>
+					Settings
+					<q-btn flat color="secondary" slot="right" @click="$refs.settingsModal.close()">
+						<q-icon name="ion-ios-close"/>
+					</q-btn>
+				</q-card-title>
+
+				<q-card-separator/>
+
+				<q-card-main>
+
+					<q-list link>
+						<q-item tag="label" multiline>
+							<q-item-main>
+								<q-item-tile label>Show Attainments</q-item-tile>
+								<q-item-tile sublabel>Attainments allow the caster to improve spell factors</q-item-tile>
+							</q-item-main>
+							<q-item-side right>
+								<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="settings.showAttainments"></q-toggle>
+							</q-item-side>
+						</q-item>
+
+					</q-list>
+
+				</q-card-main>
+			</q-card>
+		</q-modal>
+
 	</q-layout>
 </template>
 
@@ -1038,9 +1013,10 @@
 		QChip,
 		QStepper, QStep, QStepperNavigation,
 		QCard, QCardTitle, QCardSeparator, QCardMain,
-		QList,
-		QItem, QItemSide, QItemMain,
+		QList, QListHeader,
+		QItem, QItemSide, QItemMain, QItemTile,
 		QCollapsible,
+		QModal,
 		QBtn,
 		QTooltip,
 		QIcon,
@@ -1049,10 +1025,13 @@
 		Dialog,
 		Toast,
 		openURL,
-		debounce
+		debounce,
+		frameDebounce
 	} from 'quasar'
 
 	import _ from 'lodash'
+
+	import store from 'store'
 
 	import {AddressbarColor} from 'quasar'
 
@@ -1151,6 +1130,14 @@
 		[ 's9', {
 			time: '50 turns',
 			penalty: 16
+		} ],
+		[ 's10', {
+			time: '60 turns',
+			penalty: 18
+		} ],
+		[ 's11', {
+			time: '70 turns',
+			penalty: 20
 		} ],
 		[ 'a1', {
 			time: '1 scene/hour',
@@ -1340,12 +1327,12 @@
 		} ],
 		[ 't2', {
 			name: 'Material Sympathy',
-			desc: 'An item sympathetically linked to the subject <i>as they are now</i>. At least one sympathetic tool is required for sympathetic casting.',
+			desc: 'An item sympathetically linked to the subject <i>as they are now</i>. At least one sympathetic tool is required for sympathetic casting. Does not grant a bonus when used with Sympathetic Range or Temporal Sympathy Attainments.',
 			bonus: 2
 		} ],
 		[ 't3', {
 			name: 'Representational Sympathy',
-			desc: 'An item sympathetically linked to the subject <i>as they were previously</i>. At least one sympathetic tool is required for sympathetic casting.',
+			desc: 'An item sympathetically linked to the subject <i>as they were previously</i>. At least one sympathetic tool is required for sympathetic casting. Does not grant a bonus when used with Sympathetic Range or Temporal Sympathy Attainments.',
 			bonus: 1
 		} ],
 		[ 't4', {
@@ -1375,6 +1362,60 @@
 		} ],
 	] )
 
+	var getInitialData = function ()
+	{
+		return {
+			currentStep: 'first',
+			caster: {
+				gnosis: 1,
+				arcana: 1,
+				arcanaName: arcanaNames[ 0 ],
+				isHighestArcana: true,
+				isRulingArcana: true,
+				activeSpells: 0
+			},
+			spell: {
+				arcana: 1,
+				isPraxis: false,
+				primaryFactor: 'potency',
+				factors: {
+					castingTime: 's1',
+					potency: 's1',
+					range: 's1',
+					duration: 's1',
+					scale: 's1',
+				},
+				bonusDice: 0,
+				spendWillpower: false,
+				extraReach: 0,
+				yantras: [],
+				attainments: {
+					conditionalDuration: false,
+					everywhere: false,
+					permanence: false,
+					sympatheticRange: false,
+					temporalSympathy: false,
+					timeInABottle: false
+				}
+			},
+			subject: {
+				isResisted: false,
+				withstand: 1,
+				numWithstands: 1
+			},
+			paradox: {
+				inured: false,
+				previousRolls: 0,
+				sleepers: false,
+				sleeperGroupSize: 'sm',
+				manaSpent: 0
+			},
+			settings: {
+				showAttainments: true
+			}
+		}
+	}
+
 	// Toast Defaults
 	Toast.setDefaults( {
 		icon: 'ion-ios-lightbulb',
@@ -1389,9 +1430,10 @@
 			QChip,
 			QStepper, QStep, QStepperNavigation,
 			QCard, QCardTitle, QCardSeparator, QCardMain,
-			QList,
-			QItem, QItemSide, QItemMain,
+			QList, QListHeader,
+			QItem, QItemSide, QItemMain, QItemTile,
 			QCollapsible,
+			QModal,
 			QBtn,
 			QTooltip,
 			QIcon,
@@ -1399,44 +1441,7 @@
 		},
 		data: function ()
 		{
-			return {
-				caster: {
-					gnosis: 1,
-					arcana: 1,
-					arcanaName: arcanaNames[ 0 ],
-					isHighestArcana: true,
-					isRulingArcana: true,
-					activeSpells: 0
-				},
-				spell: {
-					arcana: 1,
-					isPraxis: false,
-					primaryFactor: 'potency',
-					factors: {
-						castingTime: 's1',
-						potency: 's1',
-						range: 's1',
-						duration: 's1',
-						scale: 's1',
-					},
-					bonusDice: 0,
-					spendWillpower: false,
-					extraReach: 0,
-					yantras: []
-				},
-				subject: {
-					isResisted: false,
-					withstand: 1,
-					numWithstands: 1
-				},
-				paradox: {
-					inured: false,
-					previousRolls: 0,
-					sleepers: false,
-					sleeperGroupSize: 'sm',
-					manaSpent: 0
-				}
-			}
+			return getInitialData()
 		},
 		computed: {
 			arcanaNameOptions()
@@ -1453,6 +1458,51 @@
 
 				return options
 			},
+			maxCasterArcana()
+			{
+				let arcana
+
+				if ( this.caster.isHighestArcana )
+				{
+					if ( this.caster.gnosis >= 5 )
+					{
+						arcana = 5
+					}
+					else if ( this.caster.gnosis >= 3 )
+					{
+						arcana = 4
+					}
+					else
+					{
+						arcana = 3
+					}
+				}
+				else
+				{
+					if ( this.caster.gnosis >= 6 )
+					{
+						arcana = 5
+					}
+					else if ( this.caster.gnosis >= 4 )
+					{
+						arcana = 4
+					}
+					else
+					{
+						arcana = 3
+					}
+				}
+
+				return arcana
+			},
+			isCasterArcanaTooHigh()
+			{
+				return this.caster.arcana > this.maxCasterArcana
+			},
+			isSpellArcanaTooHigh()
+			{
+				return this.caster.arcana < this.spell.arcana
+			},
 			freeReach()
 			{
 				return this.caster.arcana - this.spell.arcana + 1
@@ -1461,7 +1511,7 @@
 			{
 				let reach = 0
 
-				if( this.caster.activeSpells >= this.caster.gnosis )
+				if ( this.caster.activeSpells >= this.caster.gnosis )
 				{
 					reach += this.caster.activeSpells - this.caster.gnosis + 1
 				}
@@ -1471,18 +1521,33 @@
 				{
 					if ( this.spell.factors[ factor ][ 0 ] === 'a' )
 					{
-						reach += 1
+						reach++
 					}
 				}
 
 				// indefinite duration costs 1 reach
 				if ( !this.isPrimaryFactor( 'duration' ) && this.spell.factors.duration === 'a6' )
 				{
-					reach += 1
+					reach++
 				}
 
 				// spell-specific extra reach
 				reach += this.spell.extraReach
+
+				if ( this.spell.attainments.permanence )
+				{
+					reach--
+				}
+
+				if ( this.spell.attainments.timeInABottle )
+				{
+					reach--
+				}
+
+				if ( this.spell.attainments.everywhere )
+				{
+					reach--
+				}
 
 				return reach
 			},
@@ -1541,6 +1606,42 @@
 					this.paradox.previousRolls > 0 ||
 					this.paradox.sleepers;
 			},
+			durationPenalty()
+			{
+				let penalty = durations.get( this.spell.factors.duration ).penalty
+
+				if ( this.isPrimaryFactor( 'duration' ) )
+				{
+					penalty -= ( this.caster.arcana - 1 )
+				}
+
+				if ( penalty <= 0 )
+				{
+					penalty = 0
+				}
+
+				return penalty
+			},
+			potencyValue()
+			{
+				return this.spell.factors.potency.substr( 1 )
+			},
+			potencyPenalty()
+			{
+				let penalty = ( this.potencyValue - 1 ) * 2
+
+				if ( this.isPrimaryFactor( 'potency' ) )
+				{
+					penalty -= ( this.caster.arcana - 1 ) * 2
+				}
+
+				if ( penalty <= 0 )
+				{
+					penalty = 0
+				}
+
+				return penalty
+			},
 			dicePool()
 			{
 				// base pool
@@ -1554,16 +1655,16 @@
 				}
 
 				// casting time
-				if( !this.isAdvanced( 'castingTime' ) )
+				if ( !this.isAdvanced( 'castingTime' ) )
 				{
-					pool += this.spell.factors.castingTime[1] - 1
+					pool += this.spell.factors.castingTime[ 1 ] - 1
 				}
 
 				// potency
-				pool -= ( this.getPotencyFromKey( this.spell.factors.potency ) - 1 ) * 2
+				pool -= this.potencyPenalty
 
 				// duration
-				pool -= durations.get( this.spell.factors.duration ).penalty
+				pool -= this.durationPenalty
 
 				// scale
 				pool -= scales.get( this.spell.factors.scale ).penalty
@@ -1571,6 +1672,12 @@
 				// yantras
 				for ( let key of this.spell.yantras )
 				{
+					// sympathetic yantras don't give a bonus to sympathetic or temporal spells
+					if ( [ 't2', 't3' ].includes( key ) && ( this.spell.attainments.sympatheticRange || this.spell.attainments.temporalSympathy ) )
+					{
+						continue
+					}
+
 					pool += yantras.get( key ).bonus
 				}
 
@@ -1580,54 +1687,20 @@
 			{
 				return this.dicePool < -5
 			},
-			maxCasterArcana()
-			{
-				let arcana
-
-				if ( this.caster.gnosis >= 5 )
-				{
-					arcana = 5
-				}
-				else if ( this.caster.gnosis >= 3 )
-				{
-					arcana = 4
-				}
-				else
-				{
-					arcana = 3
-				}
-
-				if ( !this.caster.isHighestArcana )
-				{
-					arcana -= 1
-				}
-
-				return arcana
-			},
-			isCasterArcanaTooHigh()
-			{
-				return this.caster.arcana > this.maxCasterArcana
-			},
-			isSpellArcanaTooHigh()
-			{
-				return this.caster.arcana < this.spell.arcana
-			},
 			spellFactorOptions()
 			{
-				let options = []
-
-				for ( let factor of factors )
-				{
-					if ( factor !== 'castingTime' && factor !== 'range' )
+				return [ {
+					label: 'Duration',
+					value: 'duration'
+				},
 					{
-						options.push( {
-							label: _.upperFirst( factor ),
-							value: factor
-						} )
-					}
-				}
-
-				return options
+						label: 'Potency',
+						value: 'potency'
+					} ]
+			},
+			primaryFactor()
+			{
+				return this.spell.primaryFactor
 			},
 			primaryFactorLabel()
 			{
@@ -1693,7 +1766,32 @@
 					mana++
 				}
 
-				if ( !this.isPrimaryFactor( 'duration' ) && this.spell.factors.duration === 'a6' )
+				if ( this.spell.factors.duration === 'a6' )
+				{
+					mana++
+				}
+
+				if ( this.spell.attainments.permanence )
+				{
+					mana++
+				}
+
+				if ( this.spell.attainments.timeInABottle )
+				{
+					mana++
+				}
+
+				if ( this.spell.attainments.sympatheticRange )
+				{
+					mana++
+				}
+
+				if ( this.spell.attainments.temporalSympathy )
+				{
+					mana++
+				}
+
+				if ( this.spell.attainments.everywhere )
 				{
 					mana++
 				}
@@ -1706,9 +1804,32 @@
 			{
 				return gnosisManaLimits[ this.caster.gnosis ]
 			},
+			// use this to watch attainments changing
+			attainmentsByName()
+			{
+				let attainments = []
+
+				_.each( this.spell.attainments, ( value, key ) =>
+				{
+					if ( value )
+					{
+						attainments.push( key )
+					}
+				} )
+
+				return attainments
+			},
+			isDicePoolTooLow()
+			{
+				return this.dicePool < -5
+			},
+			isSympatheticYantraMissing()
+			{
+				return ( this.spell.attainments.sympatheticRange || this.spell.attainments.temporalSympathy ) && !this.spell.yantras.some( key => [ 't2', 't3', 't4' ].includes( key ) )
+			},
 			isCastable()
 			{
-				return this.dicePool > -5
+				return !this.isDicePoolTooLow && !this.isSympatheticYantraMissing
 			},
 			baseCastingTime()
 			{
@@ -1744,12 +1865,24 @@
 				let options = [],
 				    i       = 0
 
-				while ( i++ < 10 )
+				while ( i++ < 11 )
 				{
+					let penalty = ( i - 1 ) * 2
+
+					if ( this.isPrimaryFactor( 'potency' ) )
+					{
+						penalty -= ( this.caster.arcana - 1 ) * 2
+					}
+
+					if ( penalty < 0 )
+					{
+						penalty = 0
+					}
+
 					options.push( {
 						key: 's' + i,
 						value: i,
-						label: `${i} (-${(i - 1) * 2} dice)`
+						label: `${i} (-${penalty} dice)`
 					} )
 				}
 
@@ -1759,12 +1892,24 @@
 			{
 				let options = []
 				let i = 0
-				while ( i++ < 10 )
+				while ( i++ < 11 )
 				{
+					let penalty = ( i - 1 ) * 2
+
+					if ( this.isPrimaryFactor( 'potency' ) )
+					{
+						penalty -= ( this.caster.arcana - 1 ) * 2
+					}
+
+					if ( penalty < 0 )
+					{
+						penalty = 0
+					}
+
 					options.push( {
 						key: 'a' + i,
 						value: i,
-						label: `${i} (-${(i - 1) * 2} dice)`
+						label: `${i} (-${penalty} dice)`
 					} )
 				}
 
@@ -1778,11 +1923,23 @@
 				{
 					if ( key[ 0 ] === 's' )
 					{
+						let penalty = duration.penalty
+
+						if ( this.isPrimaryFactor( 'duration' ) )
+						{
+							penalty -= ( this.caster.arcana - 1 ) * 2
+						}
+
+						if ( penalty < 0 )
+						{
+							penalty = 0
+						}
+
 						options.push( {
 							key: key,
 							successes: key[ 1 ],
 							time: duration.time,
-							label: `${duration.time} (-${duration.penalty} dice)`
+							label: `${duration.time} (-${penalty} dice)`
 						} )
 					}
 				}
@@ -1797,11 +1954,23 @@
 				{
 					if ( key[ 0 ] === 'a' )
 					{
+						let penalty = duration.penalty
+
+						if ( this.isPrimaryFactor( 'duration' ) )
+						{
+							penalty -= ( this.caster.arcana - 1 ) * 2
+						}
+
+						if ( penalty < 0 )
+						{
+							penalty = 0
+						}
+
 						options.push( {
 							key: key,
 							successes: key[ 1 ],
 							time: duration.time,
-							label: `${duration.time} (-${duration.penalty} dice)`
+							label: `${duration.time} (-${penalty} dice)`
 						} )
 					}
 				}
@@ -1944,14 +2113,18 @@
 				{
 					return `${ this.dicePool } dice`
 				}
-
 			},
 			castingTimeSummary()
 			{
-				if ( this.spell.factors.castingTime === 's1' )
+				// standard
+				if ( this.spell.factors.castingTime[ 0 ] === 's' )
 				{
-					return this.baseCastingTime
+					let increment = this.baseCastingTime.increment * this.spell.factors.castingTime[ 1 ],
+					    unit      = this.baseCastingTime.unit + ( increment !== 1 ? 's' : '' )
+
+					return increment + ' ' + unit
 				}
+				// advanced
 				else
 				{
 					let turns = this.numYantras <= 1 ? 1 : this.numYantras - 1;
@@ -1967,17 +2140,32 @@
 			durationSummary()
 			{
 				return durations.get( this.spell.factors.duration ).time
-
 			},
 			potencySummary()
 			{
-				return this.getPotencyFromKey( this.spell.factors.potency )
+				return this.potencyValue
 			},
 			rangeSummary()
 			{
 				if ( this.spell.factors.range === 's1' )
 				{
 					return 'Touch/aimed'
+				}
+				else if ( this.spell.attainments.sympatheticRange || this.spell.attainments.temporalSympathy )
+				{
+					let range = []
+
+					if ( this.spell.attainments.sympatheticRange )
+					{
+						range.push( 'Sympathetic' )
+					}
+
+					if ( this.spell.attainments.temporalSympathy )
+					{
+						range.push( 'Temporal Sympathetic' )
+					}
+
+					return range.join( ' and ' )
 				}
 				else
 				{
@@ -2000,9 +2188,48 @@
 				}
 
 				return yantrasNames
+			},
+			factorCastingTime()
+			{
+				return this.spell.factors.castingTime
+			},
+			factorDuration()
+			{
+				return this.spell.factors.duration
+			},
+			factorRange()
+			{
+				return this.spell.factors.range
+			},
+			factorScale()
+			{
+				return this.spell.factors.scale
 			}
 		},
 		watch: {
+			/*currentStep()
+			{
+			},*/
+			freeReach()
+			{
+				this.animateChip( 'footer-reach-chip' )
+			},
+			usedReach()
+			{
+				this.animateChip( 'footer-reach-chip' )
+			},
+			dicePool()
+			{
+				this.animateChip( 'footer-dice-pool-chip' )
+			},
+			totalMana()
+			{
+				this.animateChip( 'footer-mana-chip' )
+			},
+			paradoxDice()
+			{
+				this.animateChip( 'footer-paradox-chip' )
+			},
 			isCasterArcanaTooHigh() // watch computed so we don't have to use inefficient deep watcher
 			{
 				if ( this.caster.arcana > this.maxCasterArcana )
@@ -2028,11 +2255,15 @@
 						() =>
 						{
 							this.spell.arcana = this.caster.arcana
-							Toast.create( 'Spell\'s Arcana cannot exceed Caster\'s Arcana of ' + this.caster.arcana )
+							Toast.create( `Spell's Arcana cannot exceed Caster's Arcana of ${this.caster.arcana}` )
 						},
 						500
 					)()
 				}
+			},
+			primaryFactor()
+			{
+				this.checkPotencyAgainstWithstand()
 			},
 			isConcentrationMantraAllowed()
 			{
@@ -2046,13 +2277,27 @@
 			// disable potency checkboxes below Withstand level
 			totalWithstand()
 			{
-				let potency = this.spell.factors.potency[ 1 ],
-				    prefix  = this.spell.factors.potency[ 0 ]
-
-				if ( potency <= this.totalWithstand )
-				{
-					this.spell.factors.potency = prefix + ( this.totalWithstand + 1 )
-				}
+				this.checkPotencyAgainstWithstand()
+			},
+			attainmentsByName()
+			{
+				this.checkAttainments()
+			},
+			factorCastingTime()
+			{
+				this.checkAttainments()
+			},
+			factorDuration()
+			{
+				this.checkAttainments()
+			},
+			factorRange()
+			{
+				this.checkAttainments()
+			},
+			factorScale()
+			{
+				this.checkAttainments()
 			},
 			numYantras()
 			{
@@ -2066,16 +2311,20 @@
 						}
 					)()
 				}
-			}
+			},
+			settings:
+				{
+					handler()
+					{
+						store.set( 'settings', this.settings )
+					},
+					deep: true
+				}
 		},
 		methods: {
 			open( url )
 			{
 				openURL( url )
-			},
-			getPotencyFromKey( key )
-			{
-				return key[ 1 ]
 			},
 			isAdvanced( factorName )
 			{
@@ -2084,6 +2333,96 @@
 			isPrimaryFactor( factorName )
 			{
 				return this.spell.primaryFactor === factorName
+			},
+			/**
+			 * Called when Caster's Arcana, Potency, Primary Factor or Withstand changed
+			 */
+			checkPotencyAgainstWithstand()
+			{
+				let extraPotency = this.spell.factors.potency[ 1 ] - 1,
+				    prefix       = this.spell.factors.potency[ 0 ], // 's' or 'a'
+				    minPotency   = this.subject.isResisted ? this.totalWithstand + 1 : 0,
+				    isStandard   = prefix !== 'a'
+
+				// Advanced Potency reduces Withstand by 2
+				if ( !isStandard )
+				{
+					minPotency -= 2
+				}
+
+				// is Potency too low?
+				if ( extraPotency < minPotency )
+				{
+					debounce(
+						() =>
+						{
+							this.spell.factors.potency = prefix + minPotency
+							Toast.create( `Potency spell factor (${ prefix === 's' ? 'Standard' : 'Advanced' }) automatically increased to ${ minPotency }` )
+						}
+					)()
+				}
+			},
+			checkAttainments()
+			{
+				// time in a bottle requires advanced
+				if ( this.spell.attainments.timeInABottle && !this.isAdvanced( 'castingTime' ) )
+				{
+					debounce(
+						() =>
+						{
+							this.spell.attainments.timeInABottle = false
+							Toast.create( 'Time in a Bottle attainment requires advanced Casting Time. Deselecting attainment.' )
+						}
+					)()
+				}
+
+				// permanence requires advanced
+				if ( this.spell.attainments.permanence && ( this.caster.arcanaName !== 'Matter' || !this.isAdvanced( 'duration' ) ) )
+				{
+					debounce(
+						() =>
+						{
+							this.spell.attainments.permanence = false
+							Toast.create( 'Permanence attainment requires advanced Duration. Deselecting attainment.' )
+						}
+					)()
+				}
+
+				// everywhere requires advanced
+				if ( this.spell.attainments.everywhere && !this.isAdvanced( 'scale' ) )
+				{
+					debounce(
+						() =>
+						{
+							this.spell.attainments.everywhere = false
+							Toast.create( 'Everywhere attainment requires advanced Scale. Deselecting attainment.' )
+						}
+					)()
+				}
+
+				// sympathy requires advanced
+				if ( this.spell.attainments.sympatheticRange && !this.isAdvanced( 'range' ) )
+				{
+					debounce(
+						() =>
+						{
+							this.spell.attainments.sympatheticRange = false
+							Toast.create( 'Sympathetic Range attainment requires advanced Range. Deselecting attainment.' )
+						}
+					)()
+				}
+
+				// temporal sympathy requires advanced
+				if ( this.spell.attainments.temporalSympathy && !this.isAdvanced( 'range' ) )
+				{
+					debounce(
+						() =>
+						{
+							this.spell.attainments.temporalSympathy = false
+							Toast.create( 'Temporal Sympathy attainment requires advanced Range. Deselecting attainment.' )
+						}
+					)()
+				}
 			},
 			stepNext()
 			{
@@ -2100,10 +2439,23 @@
 				this.$refs.stepper.goToStep( 'first' )
 				this.scrollUp()
 			},
+			stepThird()
+			{
+				this.$refs.stepper.goToStep( 'third' )
+				this.scrollUp()
+			},
 			scrollUp()
 			{
 				window.scrollTo( 0, 0 );
 			},
+			/*disableStepButtonFirst()
+			{
+				document.getElementById( 'step-button-first' ).setAttribute( 'disabled', true )
+			},
+			enableStepButtonFirst()
+			{
+				document.getElementById( 'step-button-first' ).removeAttribute( 'disabled' )
+			},*/
 			showExtraDiceModal()
 			{
 				Dialog.create( {
@@ -2123,15 +2475,14 @@
 							label: 'Spend Willpower',
 							items: [ {
 								label: 'Spend Willpower',
-								value: true
+								value: 'spend'
 							} ],
-							model: [
-								this.spell.spendWillpower
-							],
+							model: this.spell.spendWillpower,
 							withLabel: true
 						}
 					},
 					buttons: [
+						'Cancel',
 						{
 							label: 'Save',
 							handler: ( data ) =>
@@ -2159,6 +2510,7 @@
 						}
 					},
 					buttons: [
+						'Cancel',
 						{
 							label: 'Save',
 							handler: ( data ) =>
@@ -2168,6 +2520,38 @@
 						}
 					]
 				} )
+			},
+			animateChip( id )
+			{
+				let chip = document.getElementById( id )
+
+				// add animation class
+				chip.classList.add( 'animate' )
+
+				// remove again
+				for ( let eventName of [ 'webkitAnimationEnd', 'mozAnimationEnd', 'MSAnimationEnd', 'oanimationend', 'animationend' ] )
+				{
+					chip.addEventListener( eventName,
+						() =>
+						{
+							chip.classList.remove( 'animate' )
+						},
+						{ once: true } )
+				}
+			},
+			resetData()
+			{
+				Object.assign( this.$data, getInitialData() )
+			}
+		},
+		mounted()
+		{
+			// load persisted settings?
+			let storedSettings = store.get( 'settings' )
+			if ( storedSettings &&
+				'showAttainments' in storedSettings )
+			{
+				this.settings = storedSettings
 			}
 		}
 	}
@@ -2176,14 +2560,19 @@
 <style lang="stylus">
 	@import '~variables'
 
-	.text-muted
-		color $faded
-
 	.layout-page
 		margin-bottom 40px
 
+	.q-toolbar-title a
+		color white
+		&:hover
+			color $secondary
+
 	.toolbar-spacer
 		padding 0 1rem
+
+	.text-muted
+		color $faded
 
 	.q-stepper-header
 		box-shadow unset
@@ -2203,30 +2592,47 @@
 		i.q-icon
 			font-size 22px
 
+	.q-stepper-nav
+		position fixed
+		bottom 0
+		right 16px
+		z-index 2100
+
 	.sm-gutter > div > .q-card
 		margin 0
 		& + .q-card
 			margin-top 16px
 
-	h5
-		small
-			display inline-block
-			font-size 1rem
-			font-weight 400
-			line-height 110%
-			color #777
+	h5 small
+		display inline-block
+		font-size 1rem
+		font-weight 400
+		line-height 110%
+		color #777
 
 	h6
 		font-size 18px
 
-	p > small {
-		font-size 14px
-		line-height 11px
-	}
+	p
+		margin-bottom 8px
+		& > small
+			font-size 14px
+			line-height 11px
+
+	span.arcana-dot
+		color black !important
+		font-size 90%
 
 	p .q-btn.inline
 		margin-top -3px
 		padding 0 8px
+
+	.q-card-primary
+		background-color $primary
+		color $white
+		.q-btn
+			color $white !important
+			padding 0 8px
 
 	.q-card-title
 		font-size 18px
@@ -2266,7 +2672,7 @@
 	.q-tooltip.warning
 		background-color $negative
 
-	.q-item-link
+	.q-collapsible > .q-item-link
 		background-color $secondary
 		color $white
 		&:hover
@@ -2275,10 +2681,6 @@
 			min-width: 20px
 		i.q-item-icon
 			color $white
-
-	.q-card-primary
-		background-color $primary
-		color $white
 
 	.primary-factor
 		background-color $light
@@ -2296,23 +2698,42 @@
 	.q-table
 		margin-top 8px
 		th
-			font-weight normal
+			font-weight bold
 		th, td
 			vertical-align top
 		thead, th
 			background-color $faded
 			color $white
+			font-size 14px
+			.text-muted
+				color #ccc
 		.small
-			font-size 85%
+			font-size 14px
 		&.vertical-table th
 			text-align right
+			font-weight normal
 
 	.q-table + p
 		margin-top 16px
 
-	footer
+	.attainments
+		font-size 14px
+		margin 19px 0 9px
+		.q-list-header
+			display block
+			color $white
+			background-color $faded
+			padding 2px 8px
+			line-height: normal
+		.q-item-label
+			font-size 14px
+		.q-item-sublabel
+			font-size 12px
+
+	.footer
 		.q-chip
 			color $white
+			box-shadow 0 0 0 black
 			&.info
 				background-color $info !important
 			&.warning
@@ -2321,10 +2742,51 @@
 				margin-right 1px
 			&:hover
 				.footer-chip-label
-					display: inline !important
+					display inline !important
+			&.animate
+				.footer-chip-inner
+					animation pulse 1s 1 cubic-bezier(0.66, 0, 0, 1)
+				.q-icon
+					animation spin 1.25s 1 cubic-bezier(0.66, 0, 0, 1)
 
 	.q-stepper-nav
 		justify-content flex-end
 		padding-right 6px
+
+	// animations
+	@keyframes pulse
+		from
+			opacity 0
+		to
+			opacity 1
+
+	@keyframes spin
+		from
+			transform rotate(0deg)
+		to
+			transform rotate(360deg)
+
+	// move button onto footer on wider screen
+	@media (max-device-width 500px )
+		.q-stepper-nav
+			right 10px
+			bottom 60px
+			background-color rgba(255, 255, 255, 0.9)
+			padding 8px 6px
+			min-height 30px
+			border 1px solid rgba(200, 200, 200, 0.7)
+			border-radius 3px
+			box-shadow 0 0 3px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.12), 0 1px 1px -1px rgba(0, 0, 0, 0.12)
+			.q-btn
+				padding 8px !important
+				font-size 12px
+
+	@media (min-device-width 500px )
+		.q-stepper-nav
+			button.q-btn-flat
+				.q-focus-helper
+					background-color $white
+				.q-btn-inner
+					color $white !important
 
 </style>
