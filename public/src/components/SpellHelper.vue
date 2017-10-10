@@ -39,7 +39,7 @@
 						<span class="footer-chip-label gt-xs">Reach</span> {{ usedReach }}/{{ freeReach }}
 					</span>
 				</q-chip>
-				<q-chip icon="ion-ios-analytics-outline" id="footer-dice-pool-chip" class="info" v-bind:class="{ warning: isDicePoolTooLow }" small>
+				<q-chip icon="ion-ios-analytics-outline" id="footer-dice-pool-chip" class="info" :class="{ warning: isDicePoolTooLow }" small>
 					<span class="footer-chip-inner">
 						<span class="footer-chip-label gt-xs">Dice pool</span> {{ dicePool }}
 					</span>
@@ -52,7 +52,7 @@
 						<span class="footer-chip-label gt-xs">Mana</span> {{ totalMana }}
 					</span>
 				</q-chip>
-				<q-chip icon="ion-ios-flower" id="footer-paradox-chip" class="warning" small v-bind:class="{ hidden: !hasParadox }">
+				<q-chip icon="ion-ios-flower" id="footer-paradox-chip" class="warning" small :class="{ hidden: !hasParadox }">
 					<span class="footer-chip-inner">
 						<span class="footer-chip-label gt-xs">Paradox</span> {{ paradoxDice }}
 					</span>
@@ -102,8 +102,10 @@
 								</div>
 
 								<div class="fieldset">
-									<h6>Is {{ caster.arcanaName }} the Mage's Highest Arcanum?</h6>
-									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="caster.isHighestArcana"/>
+									<q-field helper="Gnosis provides different limits for the highest and non-highest Arcana.">
+										<h6>Is {{ caster.arcanaName }} the Mage's Highest Arcanum?</h6>
+										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="caster.isHighestArcana"/>
+									</q-field>
 								</div>
 
 								<div class="fieldset">
@@ -150,9 +152,27 @@
 								</div>
 
 								<div class="fieldset">
+									<h6>Is the Spell a Rote?</h6>
+									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isRote" :disable="roteOrPraxis === 'praxis'"/>
+									<q-tooltip class="warning" v-show="roteOrPraxis === 'praxis'">
+										You must chose either Rote or Praxis.
+									</q-tooltip>
+								</div>
+
+								<div :class="{ hidden: !spell.isRote }" class="fieldset">
+									<q-field helper="Skill dots are  added to the dice pool as a Yantra bonus.">
+										<h6>Rote Skill</h6>
+										<q-slider v-model="spell.roteSkill" :min="1" :max="10" :step="1" label-always snap/>
+									</q-field>
+								</div>
+
+								<div class="fieldset">
 									<q-field helper="Praxes only require three successes for an exceptional success, and do not require a Mana if the spell if from a Common or Inferior arcanum.">
 										<h6>Is the Spell a Praxis?</h6>
-										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isPraxis"/>
+										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isPraxis" :disable="roteOrPraxis==='rote'"/>
+										<q-tooltip class="warning" v-show="roteOrPraxis === 'rote'">
+											You must chose either Rote or Praxis.
+										</q-tooltip>
 									</q-field>
 								</div>
 
@@ -191,15 +211,15 @@
 									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="subject.isResisted"/>
 								</div>
 
-								<div v-bind:class="{ hidden: !subject.isResisted }" class="fieldset">
+								<div :class="{ hidden: !subject.isResisted }" class="fieldset">
 									<q-field helper="Potency must exceed this level for the spell to take effect.">
 										<h6>Withstand Rating</h6>
 										<q-slider v-model="subject.withstand" :min="1" :max="10" :step="1" label-always snap/>
 									</q-field>
 								</div>
 
-								<div v-bind:class="{ hidden: !subject.isResisted }" class="fieldset">
-									<q-field helper="If a spell has multiple Withstand ratings (eg. a Withstood spell cast with a Sympathetic Range Attainment) it uses the highest rating, +1 for every additional rating.">
+								<div :class="{ hidden: !subject.isResisted }" class="fieldset">
+									<q-field helper="If a spell has multiple Withstand ratings (eg. a Withstood spell cast with a Sympathetic Range Attainment or through the Gauntlet) it uses the highest rating, +1 for every additional rating.">
 										<h6>Number of Withstand Ratings</h6>
 										<q-input v-model="subject.numWithstands" type="number" :min="1"/>
 									</q-field>
@@ -213,8 +233,8 @@
 				</div>
 
 				<q-stepper-navigation>
-					<q-btn id="step-button-first" color="secondary" flat @click="resetData()">Reset</q-btn>
-					<q-btn id="step-button-first" color="secondary" @click="stepNext()">Next</q-btn>
+					<q-btn color="secondary" flat @click="resetData()">Reset</q-btn>
+					<q-btn color="secondary" @click="stepNext()">Next</q-btn>
 				</q-stepper-navigation>
 			</q-step>
 
@@ -284,14 +304,14 @@
 					</div>
 
 					<!-- Duration -->
-					<div class="col-xs-12 col-sm-6 col-xl-4" v-bind:class="{'order-first': spell.primaryFactor === 'duration'}">
+					<div class="col-xs-12 col-sm-6 col-xl-4" :class="{'order-first': spell.primaryFactor === 'duration'}">
 
-						<q-card v-bind:class="{'primary-factor': spell.primaryFactor === 'duration'}">
+						<q-card :class="{'main-card': spell.primaryFactor === 'duration'}">
 
 							<q-card-title>
 								<q-icon name="ion-ios-clock" class="smaller"/>
 								Duration
-								<q-chip class="primary-factor-chip pull-right" v-bind:class="{ hidden: spell.primaryFactor !== 'duration' }">
+								<q-chip class="main-card-chip pull-right" :class="{ hidden: spell.primaryFactor !== 'duration' }">
 									<q-icon name="ion-ios-medical"/>
 									<span class="gt-xs">Primary Factor</span>
 									<q-tooltip class="lt-sm">
@@ -304,7 +324,7 @@
 
 							<q-card-main>
 								<q-list>
-									<q-collapsible label="Standard" group="duration"  :opened="!isAdvanced('duration')">
+									<q-collapsible label="Standard" group="duration" :opened="!isAdvanced('duration')">
 
 										<div v-for="duration in standardDurationOptions" :key="duration.key">
 											<q-radio v-model="spell.factors.duration" :val="duration.key" :label="duration.label"/>
@@ -344,13 +364,13 @@
 					</div>
 
 					<!-- Potency -->
-					<div class="col-xs-12 col-sm-6 col-xl-4" v-bind:class="{'order-first': spell.primaryFactor === 'potency'}">
+					<div class="col-xs-12 col-sm-6 col-xl-4" :class="{'order-first': spell.primaryFactor === 'potency'}">
 
-						<q-card v-bind:class="{'primary-factor': spell.primaryFactor === 'potency'}">
+						<q-card :class="{'main-card': spell.primaryFactor === 'potency'}">
 							<q-card-title>
 								<q-icon name="ion-ios-flame"/>
 								Potency
-								<q-chip class="primary-factor-chip pull-right" v-bind:class="{ hidden: spell.primaryFactor !== 'potency' }">
+								<q-chip class="main-card-chip pull-right" :class="{ hidden: spell.primaryFactor !== 'potency' }">
 									<q-icon name="ion-ios-medical"/>
 									<span class="gt-xs">Primary Factor</span>
 									<q-tooltip class="lt-sm">
@@ -363,14 +383,14 @@
 
 							<q-card-main>
 
-								<div class="alert-bar alert-bar-warning" v-bind:class="{ hidden: totalWithstand === 0 }">
+								<div class="alert-bar alert-bar-warning" :class="{ hidden: totalWithstand === 0 }">
 									<q-icon name="ion-android-warning"/>
 									Potency must exceed the subject's Withstand of {{ totalWithstand }}
 								</div>
 
 								<q-list>
 
-									<q-collapsible label="Standard" group="potency"  :opened="!isAdvanced('potency')">
+									<q-collapsible label="Standard" group="potency" :opened="!isAdvanced('potency')">
 										<div>
 											<div v-for="potency in standardPotencyOptions" :key="potency.key">
 												<q-radio v-model="spell.factors.potency" :val="potency.key" :label="potency.label" :disable="potency.value <= totalWithstand"/>
@@ -414,7 +434,7 @@
 							<q-card-main>
 								<q-list>
 
-									<q-collapsible label="Standard" group="range"  :opened="!isAdvanced('range')">
+									<q-collapsible label="Standard" group="range" :opened="!isAdvanced('range')">
 										<label>
 											<q-radio v-model="spell.factors.range" val="s1"/>
 											<b>Standard:</b> Self/touch or Aimed </label>
@@ -482,7 +502,7 @@
 
 							<q-card-main>
 								<q-list>
-									<q-collapsible label="Standard" group="scale"  :opened="!isAdvanced('scale')">
+									<q-collapsible label="Standard" group="scale" :opened="!isAdvanced('scale')">
 
 										<table class="q-table highlight responsive compact">
 											<thead>
@@ -602,73 +622,25 @@
 
 				<div class="row sm-gutter">
 
-					<div class="col-xs-12 col-sm-6 col-xl-4">
+					<div class="col-sm-12 col-md-9 col-lg-6">
 
 						<q-card>
 							<q-card-title>
-								Locations
+								Yantras
 							</q-card-title>
 
 							<q-card-separator/>
 
 							<q-card-main>
-								<div v-for="yantra in locationYantraOptions" :key="yantra.key" class="fieldset">
-									<q-field :helper="yantra.desc">
-										<q-checkbox v-model="spell.yantras" :val="yantra.key" :label="yantra.label"/>
-									</q-field>
+
+								<div>
+									<my-yantra v-for="yantra in spell.yantras" key="yantra.yantraKey" v-bind="yantra" @delete="deleteYantra" @UpdateIsDedicatedTool="updateYantraIsDedicatedTool"></my-yantra>
 								</div>
-							</q-card-main>
-						</q-card>
 
-					</div>
-
-					<div class="col-xs-12 col-sm-6 col-xl-4">
-
-						<q-card>
-							<q-card-title>
-								Actions
-							</q-card-title>
-
-							<q-card-separator/>
-
-							<q-card-main>
-								<div v-for="yantra in actionYantraOptions" :key="yantra.key" class="fieldset">
-									<q-field :helper="yantra.desc">
-										<template v-if="yantra.key === 'a1'">
-											<q-checkbox v-model="spell.yantras" :val="yantra.key" :label="yantra.label" :disable="!isConcentrationMantraAllowed">
-												<q-tooltip class="warning" v-bind:class="{ hidden: isConcentrationMantraAllowed }">
-													Duration must be more than 1 turn
-												</q-tooltip>
-											</q-checkbox>
-										</template>
-										<template v-else>
-											<q-checkbox v-model="spell.yantras" :val="yantra.key" :label="yantra.label"/>
-										</template>
-									</q-field>
-								</div>
-							</q-card-main>
-						</q-card>
-
-					</div>
-
-					<div class="col-xs-12 col-sm-6 col-xl-4">
-
-						<q-card>
-							<q-card-title>
-								Tools
-							</q-card-title>
-
-							<q-card-separator/>
-
-							<q-card-main>
-								<div v-for="yantra in toolYantraOptions" :key="yantra.key" class="fieldset">
-									<q-field :helper="yantra.desc">
-										<q-checkbox v-model="spell.yantras" :val="yantra.key" :label="yantra.label"/>
-
-									</q-field>
-									<q-tooltip v-if="[ 't2', 't3' ].includes( yantra.key ) && ( spell.attainments.sympatheticRange || spell.attainments.temporalSympathy )" class="warning">
-										Does not grant a bonus when used with the Sympathetic Range or Temporal Sympathy Attainments.
-									</q-tooltip>
+								<div class="text-right">
+									<q-btn color="secondary" icon="ion-ios-color-wand" @click="$refs.yantrasModal.open()">
+										Add a Yantra
+									</q-btn>
 								</div>
 							</q-card-main>
 						</q-card>
@@ -794,12 +766,12 @@
 
 							<q-card-main>
 
-								<div class="alert-bar alert-bar-info" v-bind:class="{ hidden: hasParadox }">
+								<div class="alert-bar alert-bar-info" :class="{ hidden: hasParadox }">
 									<q-icon name="ion-ios-checkmark"/>
 									This spell does not require a Paradox roll.
 								</div>
 
-								<div v-bind:class="{ hidden: !hasParadox }">
+								<div :class="{ hidden: !hasParadox }">
 									<div class="alert-bar alert-bar-warning">
 										<q-icon name="ion-alert-circled"/>
 										This spell requires a Paradox roll. Roll for Paradox first.
@@ -820,7 +792,7 @@
 							</q-card-main>
 						</q-card>
 
-						<q-card v-show="spell.yantras.length > 0">
+						<q-card v-show="numYantras > 0">
 							<q-card-title>
 								Yantras
 							</q-card-title>
@@ -842,9 +814,17 @@
 
 					<div class="col-xs-12 col-sm-6">
 
-						<q-card>
+						<q-card class="main-card">
 							<q-card-title>
 								Spell
+								<q-chip class="main-card-chip pull-right" v-show="roteOrPraxis === 'rote'">
+									<q-icon name="ion-ios-medical"/>
+									Rote
+								</q-chip>
+								<q-chip class="main-card-chip pull-right" v-show="roteOrPraxis === 'praxis'">
+									<q-icon name="ion-ios-medical"/>
+									Praxis
+								</q-chip>
 							</q-card-title>
 
 							<q-card-separator/>
@@ -869,7 +849,7 @@
 										This spell is Withstood. Potency {{ totalWithstand + 1 }} is required to affect the target.
 									</div>
 
-									<div class="alert-bar alert-bar-info" v-bind:class="{ hidden: !spell.isPraxis }">
+									<div class="alert-bar alert-bar-info" :class="{ hidden: !spell.isPraxis }">
 										<q-icon name="ion-ios-information"/>
 										This spell only requires three successes for an exceptional success.
 									</div>
@@ -893,7 +873,7 @@
 									<h6>Successes</h6>
 									<p>A single success means the spell takes place. For exceptional successes, see p. 115.</p>
 
-									<div v-bind:class="{ hidden: !subject.isResisted }">
+									<div :class="{ hidden: !subject.isResisted }">
 
 										<h6>Withstand</h6>
 										<p>{{ totalWithstand }}</p>
@@ -1002,10 +982,77 @@
 			</q-card>
 		</q-modal>
 
+		<q-modal ref="yantrasModal" minimised position="top" class="yantra-modal">
+			<q-card>
+				<q-card-title>
+					Yantras
+					<q-btn flat color="secondary" slot="right" @click="$refs.yantrasModal.close()">
+						<q-icon name="ion-ios-close"/>
+					</q-btn>
+				</q-card-title>
+
+				<q-card-separator/>
+
+				<q-card-main>
+
+					<q-list link>
+
+						<!-- Locations -->
+						<q-list-header>Locations</q-list-header>
+						<q-item tag="label" multiline v-for="yantra in locationYantraOptions" :key="yantra.yantraKey" :disabled="!!yantra.disabledWarning" @click="!yantra.disabledWarning ? addYantraFromModal( yantra.yantraKey ) : null">
+							<q-item-main>
+								<q-item-tile label>
+									<b>{{ yantra.name }}</b> (+{{ yantra.bonus }})
+									<q-tooltip class="warning" v-if="!!yantra.disabledWarning">
+										{{ yantra.disabledWarning }}
+									</q-tooltip>
+								</q-item-tile>
+								<q-item-tile sublabel>{{ yantra.desc }}</q-item-tile>
+							</q-item-main>
+
+						</q-item>
+
+						<!-- Actions -->
+						<q-list-header>Actions</q-list-header>
+						<q-item tag="label" multiline v-for="yantra in actionYantraOptions" :key="yantra.yantraKey" :disabled="!!yantra.disabledWarning" @click="!yantra.disabledWarning ? addYantraFromModal( yantra.yantraKey ) : null">
+							<q-item-main>
+								<q-item-tile label>
+									<b>{{ yantra.name }}</b> (+{{ yantra.bonus }})
+									<q-tooltip class="warning" v-if="!!yantra.disabledWarning">
+										{{ yantra.disabledWarning }}
+									</q-tooltip>
+								</q-item-tile>
+								<q-item-tile sublabel>{{ yantra.desc }}</q-item-tile>
+							</q-item-main>
+						</q-item>
+
+						<!-- Tools -->
+						<q-list-header>Tools</q-list-header>
+						<q-item tag="label" multiline v-for="yantra in toolYantraOptions" :key="yantra.yantraKey" :disabled="!!yantra.disabledWarning" @click="!yantra.disabledWarning ? addYantraFromModal( yantra.yantraKey ) : null">
+							<q-item-main>
+								<q-item-tile label>
+									<b>{{ yantra.name }}</b> (+{{ yantra.bonus }})
+									<q-tooltip class="warning" v-if="!!yantra.disabledWarning">
+										{{ yantra.disabledWarning }}
+									</q-tooltip>
+								</q-item-tile>
+								<q-item-tile sublabel>{{ yantra.desc }}</q-item-tile>
+							</q-item-main>
+						</q-item>
+
+					</q-list>
+
+				</q-card-main>
+			</q-card>
+		</q-modal>
+
 	</q-layout>
 </template>
 
 <script>
+
+	import MyYantra from './Yantra.vue'
+
 	import {
 		// Quasar components
 		QLayout,
@@ -1033,7 +1080,9 @@
 
 	import store from 'store'
 
-	import {AddressbarColor} from 'quasar'
+	import {
+		AddressbarColor
+	} from 'quasar'
 
 	AddressbarColor.set( '#155D77' )
 
@@ -1047,7 +1096,7 @@
 		'Prime',
 		'Spirit',
 		'Space',
-		'Time',
+		'Time'
 	]
 
 	const baseCastingTimes = new Map( [
@@ -1278,88 +1327,118 @@
 		} ]
 	] )
 
-	const yantras = new Map( [
+	/**
+	 * Expanded and modified by other data in the yantras computed property
+	 */
+	const yantrasBaseData = new Map( [
 
 		// locations.
 		[ 'l1', {
 			name: 'Demesne',
 			desc: 'A prepared ritual space with a soul stone',
-			bonus: 2
+			bonus: 2,
+			unique: true
 		} ],
 		[ 'l2', {
 			name: 'Location',
 			desc: 'A place and time symbolically linked to the spell.',
-			bonus: 2
+			bonus: 1,
+			unique: true
 		} ],
 		[ 'l3', {
 			name: 'Supernal Verge',
 			desc: 'A place where the Supernal touches the Fallen World.',
-			bonus: 2
+			bonus: 2,
+			unique: true
 		} ],
 
 		// actions
 		[ 'a1', {
-			name: 'Concentration',
-			desc: 'Duration must be greater than a turn. If the mage is hurt or takes a non-reflexive action while the spell is active, it ends immediately.',
-			bonus: 2
+			name: 'Rote Skill Mudra',
+			desc: 'Uses skill dots as a bonus. The character must be free to make whatever mnemonic gestures are used to recall the Rote.',
+			bonus: 0,
+			unique: true
 		} ],
 		[ 'a2', {
-			name: 'Mantra (High Speech)',
-			desc: 'Must be spoken aloud. Cannot be used reflexively.',
-			bonus: 2
+			name: 'Concentration',
+			desc: 'Duration must be greater than a turn. If the mage is hurt or takes a non-reflexive action while the spell is active, it ends immediately.',
+			bonus: 2,
+			unique: true
 		} ],
 		[ 'a3', {
+			name: 'Mantra (High Speech)',
+			desc: 'Must be spoken aloud. Cannot be used reflexively.',
+			bonus: 2,
+			unique: true
+		} ],
+		[ 'a4', {
 			name: 'Runes',
 			desc: 'The subject is marked with runes. Ritual casting only. If anything damages or disrupts the runes while the spell is active, it ends immediately.',
-			bonus: 2
+			bonus: 2,
+			unique: true
 		} ],
 
 		// tools
-		[ 't9', {
-			name: 'Dedicated Tool',
-			desc: 'An item that synchronizes with her Nimbus and that feeds in to her understanding of magic. Also reduces Paradox by 2 dice.',
-			bonus: 2
-		} ],
 		[ 't1', {
-			name: 'Order Tool',
-			desc: 'Tools which draw upon an Order’s symbols rather than those of the Supernal world directly, focusing magic in a way that matches their teachings.',
-			bonus: 1
+			name: 'Dedicated Tool',
+			desc: 'An item that synchronizes with her Nimbus and that feeds in to her understanding of magic. Reduces Paradox by 2 dice.',
+			bonus: 0,
+			unique: true
 		} ],
 		[ 't2', {
-			name: 'Material Sympathy',
-			desc: 'An item sympathetically linked to the subject <i>as they are now</i>. At least one sympathetic tool is required for sympathetic casting. Does not grant a bonus when used with Sympathetic Range or Temporal Sympathy Attainments.',
-			bonus: 2
+			name: 'Path Tool',
+			desc: 'Tools which align closely to her Path. See p.121 for examples.',
+			bonus: 1,
+			unique: false
 		} ],
 		[ 't3', {
-			name: 'Representational Sympathy',
-			desc: 'An item sympathetically linked to the subject <i>as they were previously</i>. At least one sympathetic tool is required for sympathetic casting. Does not grant a bonus when used with Sympathetic Range or Temporal Sympathy Attainments.',
-			bonus: 1
+			name: 'Order Tool',
+			desc: 'Tools which draw upon an Order’s symbols rather than those of the Supernal world directly, focusing magic in a way that matches their teachings.',
+			bonus: 1,
+			unique: false
 		} ],
 		[ 't4', {
-			name: 'Symbolic Sympathy',
-			desc: 'An indirect representation of the subject. At least one sympathetic tool is required for sympathetic casting.',
-			bonus: 0
+			name: 'Material Sympathy',
+			desc: 'An item sympathetically linked to the subject <i>as they are now</i>. At least one sympathetic tool is required for sympathetic casting. Does not grant a bonus when used with Sympathetic Range or Temporal Sympathy Attainments.',
+			bonus: 2,
+			unique: false
 		} ],
 		[ 't5', {
-			name: 'Sacrament',
-			desc: 'An object symbolic of the spell that the mage destroys during casting.',
-			bonus: 1
+			name: 'Representational Sympathy',
+			desc: 'An item sympathetically linked to the subject <i>as they were previously</i>. At least one sympathetic tool is required for sympathetic casting. Does not grant a bonus when used with Sympathetic Range or Temporal Sympathy Attainments.',
+			bonus: 1,
+			unique: false
 		} ],
 		[ 't6', {
-			name: 'Rare Sacrament',
-			desc: 'A sacrament which requires significant effort to acquire.',
-			bonus: 2
+			name: 'Symbolic Sympathy',
+			desc: 'An indirect representation of the subject. At least one sympathetic tool is required for sympathetic casting.',
+			bonus: 0,
+			unique: false
 		} ],
 		[ 't7', {
-			name: 'Otherworldly Sacrament',
-			desc: 'A sacrament from somewhere other than the material realm.',
-			bonus: 3
+			name: 'Sacrament',
+			desc: 'An object symbolic of the spell that the mage destroys during casting.',
+			bonus: 1,
+			unique: false
 		} ],
 		[ 't8', {
+			name: 'Rare Sacrament',
+			desc: 'A sacrament which requires significant effort to acquire.',
+			bonus: 2,
+			unique: false
+		} ],
+		[ 't9', {
+			name: 'Otherworldly Sacrament',
+			desc: 'A sacrament from somewhere other than the material realm.',
+			bonus: 3,
+			unique: false
+		} ],
+		[ 't10', {
 			name: 'Persona',
 			desc: 'A persona Yantra keys in to the mage’s Shadow Name and Cabal Theme Merits.',
-			bonus: 1
-		} ],
+			bonus: [ 1, 4 ],
+			unique: true
+		} ]
 	] )
 
 	var getInitialData = function ()
@@ -1385,10 +1464,13 @@
 					duration: 's1',
 					scale: 's1',
 				},
+				isRote: false,
+				roteSkill: 1,
 				bonusDice: 0,
 				spendWillpower: false,
 				extraReach: 0,
 				yantras: [],
+				yantraAlsoDedicatedTool: null,
 				attainments: {
 					conditionalDuration: false,
 					everywhere: false,
@@ -1425,6 +1507,7 @@
 	export default {
 		name: 'spell-helper',
 		components: {
+			MyYantra,
 			QLayout,
 			QToolbar, QToolbarTitle,
 			QChip,
@@ -1505,7 +1588,18 @@
 			},
 			freeReach()
 			{
-				return this.caster.arcana - this.spell.arcana + 1
+				let arcana
+
+				if ( this.spell.isRote )
+				{
+					arcana = 5
+				}
+				else
+				{
+					arcana = this.caster.arcana
+				}
+
+				return arcana - this.spell.arcana + 1
 			},
 			usedReach()
 			{
@@ -1550,6 +1644,21 @@
 				}
 
 				return reach
+			},
+			roteOrPraxis()
+			{
+				if ( this.spell.isRote )
+				{
+					return 'rote'
+				}
+				else if ( this.spell.isPraxis )
+				{
+					return 'praxis'
+				}
+				else
+				{
+					return null
+				}
 			},
 			baseParadoxDice()
 			{
@@ -1670,16 +1779,10 @@
 				pool -= scales.get( this.spell.factors.scale ).penalty
 
 				// yantras
-				for ( let key of this.spell.yantras )
+				this.spell.yantras.forEach( yantra =>
 				{
-					// sympathetic yantras don't give a bonus to sympathetic or temporal spells
-					if ( [ 't2', 't3' ].includes( key ) && ( this.spell.attainments.sympatheticRange || this.spell.attainments.temporalSympathy ) )
-					{
-						continue
-					}
-
-					pool += yantras.get( key ).bonus
-				}
+					pool += yantra.bonus
+				} )
 
 				return pool
 			},
@@ -1722,6 +1825,53 @@
 
 				return withstand
 			},
+			yantras()
+			{
+				let expandedYantras = new Map()
+
+				for ( let [ key, yantraBaseData ] of yantrasBaseData )
+				{
+					// bonus can contain a single number or a range. Arrayify.
+					let bonuses
+					if ( Array.isArray( yantraBaseData.bonus ) )
+					{
+						bonuses = _.range( yantraBaseData.bonus[ 0 ], yantraBaseData.bonus[ 1 ] + 1 )
+					}
+					else
+					{
+						bonuses = [ yantraBaseData.bonus ]
+					}
+
+					bonuses.forEach( bonus =>
+					{
+						let expandedYantra = _.clone( yantraBaseData )
+
+						/*
+						 * Bonus
+						 */
+
+						// rote skill mudra: bonus = skill dots
+						if ( key === 'a1' && this.spell.isRote )
+						{
+							bonus = this.spell.roteSkill
+						}
+
+						// sympathetic yantras don't give a bonus to sympathetic or temporal spells
+						if ( [ 't4', 't5' ].includes( key ) && ( this.spell.attainments.sympatheticRange || this.spell.attainments.temporalSympathy ) )
+						{
+							bonus = 0
+						}
+
+						expandedYantra.yantraKey = Array.isArray( yantraBaseData.bonus ) ? key + '_' + bonus : key // key is a reserved property in Vue so we use "yantraKey"
+						expandedYantra.bonus = bonus
+						expandedYantra.label = `${yantraBaseData.name} (+${bonus} ${bonus === 1 ? 'die' : 'dice'})`
+						expandedYantra.isDedicatedTool = false
+						expandedYantras.set( expandedYantra.yantraKey, expandedYantra )
+					} )
+				}
+
+				return expandedYantras
+			},
 			maxYantras()
 			{
 				return Math.ceil( this.caster.gnosis / 2 ) + 1
@@ -1740,18 +1890,38 @@
 					// getter
 					get()
 					{
-						return this.spell.yantras.includes( 't9' )
+						if ( this.hasYantra( 't1' ) )
+						{
+							return true
+						}
+
+						return _.some( this.spell.yantras, [ 'isDedicatedTool', true ] )
 					},
-					// setter
+					// setter (bool)
 					set( isUsed )
 					{
 						if ( isUsed )
 						{
-							this.spell.yantras.push( 't9' )
+							if ( this.isDedicatedToolYantraUsed )
+							{
+								debounce(
+									() =>
+									{
+										Toast.create( 'A Dedicated Tool is already selected' )
+									}
+								)()
+							}
+
+							this.spell.yantras.push( this.yantras.get( 't1' ) )
 						}
 						else
 						{
-							_.pull( this.spell.yantras, 't9' )
+							this.deleteYantra( 't1' )
+
+							for ( key of this.spell.yantras )
+							{
+								this.spell.yantras[ key ].isDedicatedTool = false
+							}
 
 							this.$forceUpdate() // cache: false and this.$forceUpdate() means the getter shows updated value
 						}
@@ -1761,7 +1931,7 @@
 			{
 				let mana = 0;
 
-				if ( !this.caster.isRulingArcana && !this.spell.isPraxis )
+				if ( !this.caster.isRulingArcana && !this.spell.isRote && !this.spell.isPraxis )
 				{
 					mana++
 				}
@@ -1825,7 +1995,8 @@
 			},
 			isSympatheticYantraMissing()
 			{
-				return ( this.spell.attainments.sympatheticRange || this.spell.attainments.temporalSympathy ) && !this.spell.yantras.some( key => [ 't2', 't3', 't4' ].includes( key ) )
+				return ( this.spell.attainments.sympatheticRange || this.spell.attainments.temporalSympathy ) &&
+					!this.hasYantra( 't3' ) && !this.hasYantra( 't4' ) && !this.hasYantra( 't5' )
 			},
 			isCastable()
 			{
@@ -2015,54 +2186,15 @@
 			},
 			locationYantraOptions()
 			{
-				let options = []
-
-				for ( let [ key, yantra ] of yantras )
-				{
-					if ( key[ 0 ] === 'l' )
-					{
-						let y = _.clone( yantra )
-						y.key = key
-						y.label = `${yantra.name} (+${yantra.bonus} ${yantra.bonus === 1 ? 'die' : 'dice'})`
-						options.push( y )
-					}
-				}
-
-				return options
+				return this.getYantraOptions( 'l' )
 			},
 			actionYantraOptions()
 			{
-				let options = []
-
-				for ( let [ key, yantra ] of yantras )
-				{
-					if ( key[ 0 ] === 'a' )
-					{
-						let y = _.clone( yantra )
-						y.key = key
-						y.label = `${yantra.name} (+${yantra.bonus} ${yantra.bonus === 1 ? 'die' : 'dice'})`
-						options.push( y )
-					}
-				}
-
-				return options
+				return this.getYantraOptions( 'a' )
 			},
 			toolYantraOptions()
 			{
-				let options = []
-
-				for ( let [ key, yantra ] of yantras )
-				{
-					if ( key[ 0 ] === 't' )
-					{
-						let y = _.clone( yantra )
-						y.key = key
-						y.label = `${yantra.name} (+${yantra.bonus} ${yantra.bonus === 1 ? 'die' : 'dice'})`
-						options.push( y )
-					}
-				}
-
-				return options
+				return this.getYantraOptions( 't' )
 			},
 			paradoxDiceSummary()
 			{
@@ -2129,7 +2261,7 @@
 				{
 					let turns = this.numYantras <= 1 ? 1 : this.numYantras - 1;
 
-					if ( this.spell.yantras.includes( 'a2' ) )
+					if ( this.hasYantra( 'a2' ) )
 					{
 						turns++
 					}
@@ -2182,9 +2314,9 @@
 			{
 				let yantrasNames = []
 
-				for ( let key of this.spell.yantras )
+				for ( let yantra of this.spell.yantras )
 				{
-					yantrasNames.push( yantras.get( key ) )
+					yantrasNames.push( this.yantras.get( yantra.yantraKey ) )
 				}
 
 				return yantrasNames
@@ -2225,6 +2357,17 @@
 			totalMana()
 			{
 				this.animateChip( 'footer-mana-chip' )
+			},
+			roteOrPraxis()
+			{
+				if ( this.spell.isRote )
+				{
+					this.addYantra( 'a1' )
+				}
+				else
+				{
+					this.deleteYantra( 'a1' )
+				}
 			},
 			paradoxDice()
 			{
@@ -2267,11 +2410,9 @@
 			},
 			isConcentrationMantraAllowed()
 			{
-				if ( !this.isConcentrationMantraAllowed && this.spell.yantras.includes( 'a1' ) )
+				if ( !this.isConcentrationMantraAllowed && this.hasYantra( 'a2' ) )
 				{
-					_.pull( this.spell.yantras, 'a1' )
-
-					//this.$forceUpdate() // cache: false and this.$forceUpdate() means the getter shows updated value
+					this.deleteYantra( 'a2' )
 				}
 			},
 			// disable potency checkboxes below Withstand level
@@ -2424,30 +2565,144 @@
 					)()
 				}
 			},
+			isUniqueYantraUsed( key )
+			{
+				let yantra = this.yantras.get( key )
+
+				// ignore non-uniques
+				if ( !yantra.unique )
+				{
+					return false
+				}
+
+				// this version is used?
+				if ( this.hasYantra( key ) )
+				{
+					return true
+				}
+
+				// there are multiple version of this yantra - check for others
+				if ( key.indexOf( '_' ) !== -1 )
+				{
+					let baseKey = key.split( '_' )[ 0 ];
+					if ( this.spell.yantras.some( yantra => yantra.yantraKey.indexOf( baseKey ) === 0 ) )
+					{
+						return true
+					}
+				}
+
+				return false
+			},
+			getYantraOptions( prefix )
+			{
+				let options = []
+
+				for ( let [ key, yantra ] of this.yantras )
+				{
+					if ( key[ 0 ] === prefix ) // 'l', 'a', or 't'
+					{
+						// disabled?
+						let disabledWarning
+
+						if ( key === 'a1' && !this.spell.isRote )
+						{
+							disabledWarning = 'Only available when casting Rotes.'
+						}
+
+						if ( key === 'a2' && !this.isConcentrationMantraAllowed )
+						{
+							disabledWarning = 'Duration must be more than 1 turn to use concentration.'
+						}
+
+						if ( this.isUniqueYantraUsed( key ) )
+						{
+							disabledWarning = 'Only one of this Yantra may be used.'
+						}
+
+						if ( key === 't1' && this.isDedicatedToolYantraUsed )
+						{
+							disabledWarning = 'A Dedicated Tool is already being used.'
+						}
+
+						yantra.disabledWarning = disabledWarning
+
+						// add to options
+						options.push( yantra )
+					}
+				}
+
+				return options
+			},
+			hasYantra( key )
+			{
+				return _.some( this.spell.yantras, [ 'yantraKey', key ] ) // `_.matchesProperty` iteratee shorthand.
+			},
+			addYantra( key )
+			{
+				let yantra = this.yantras.get( key )
+
+				// check uniques
+				if ( this.isUniqueYantraUsed( key ) )
+				{
+					debounce(
+						() =>
+						{
+							Toast.create( `The ${ yantra.name } Yantra can only be selected once` )
+						}
+					)()
+					return
+				}
+
+				this.spell.yantras.push( yantra )
+			},
+			deleteYantra( key )
+			{
+				let index = _.findIndex( this.spell.yantras, yantra => yantra.yantraKey === key )
+				this.spell.yantras.splice( index, 1 )
+			}
+			,
+			addYantraFromModal( key )
+			{
+				this.addYantra( key )
+
+				this.$refs.yantrasModal.close()
+			}
+			,
+			updateYantraIsDedicatedTool( key, newValue )
+			{
+				let index = _.findIndex( this.spell.yantras, yantra => yantra.yantraKey === key )
+				this.spell.yantras[ index ].isDedicatedTool = newValue
+			}
+			,
 			stepNext()
 			{
 				this.$refs.stepper.next()
 				this.scrollUp()
-			},
+			}
+			,
 			stepPrevious()
 			{
 				this.$refs.stepper.previous()
 				this.scrollUp()
-			},
+			}
+			,
 			stepFirst()
 			{
 				this.$refs.stepper.goToStep( 'first' )
 				this.scrollUp()
-			},
+			}
+			,
 			stepThird()
 			{
 				this.$refs.stepper.goToStep( 'third' )
 				this.scrollUp()
-			},
+			}
+			,
 			scrollUp()
 			{
 				window.scrollTo( 0, 0 );
-			},
+			}
+			,
 			/*disableStepButtonFirst()
 			{
 				document.getElementById( 'step-button-first' ).setAttribute( 'disabled', true )
@@ -2493,7 +2748,8 @@
 						}
 					]
 				} )
-			},
+			}
+			,
 			showParadoxManaModal()
 			{
 				Dialog.create( {
@@ -2520,7 +2776,8 @@
 						}
 					]
 				} )
-			},
+			}
+			,
 			animateChip( id )
 			{
 				let chip = document.getElementById( id )
@@ -2538,7 +2795,8 @@
 						},
 						{ once: true } )
 				}
-			},
+			}
+			,
 			resetData()
 			{
 				Object.assign( this.$data, getInitialData() )
@@ -2645,7 +2903,7 @@
 				font-size 32px
 		.q-chip
 			text-transform initial
-			&.primary-factor-chip
+			&.main-card-chip
 				background-color $light
 			.q-chip-side.chip-left
 				min-width 20px
@@ -2682,8 +2940,9 @@
 		i.q-item-icon
 			color $white
 
-	.primary-factor
+	.main-card
 		background-color $light
+		border 1px solid #bcbcbc
 		.q-card-primary
 			background-color $tertiary
 		.q-collapsible
@@ -2752,6 +3011,11 @@
 	.q-stepper-nav
 		justify-content flex-end
 		padding-right 6px
+
+	.modal-content
+		max-width 768px
+		.q-card
+			margin 0
 
 	// animations
 	@keyframes pulse
