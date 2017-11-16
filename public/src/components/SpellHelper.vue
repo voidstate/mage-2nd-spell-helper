@@ -155,7 +155,7 @@
 									<h6>Is the Spell a Rote?</h6>
 									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isRote" :disable="roteOrPraxis === 'praxis'"/>
 									<q-tooltip class="warning" v-show="roteOrPraxis === 'praxis'">
-										You must chose either Rote or Praxis.
+										You must choose either Rote or Praxis.
 									</q-tooltip>
 								</div>
 
@@ -167,11 +167,11 @@
 								</div>
 
 								<div class="fieldset">
-									<q-field helper="Praxes only require three successes for an exceptional success, and do not require a Mana if the spell if from a Common or Inferior arcanum.">
+									<q-field helper="Praxes only require three successes for an exceptional success, and do not require a Mana if the spell is from a Common or Inferior Arcanum.">
 										<h6>Is the Spell a Praxis?</h6>
 										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isPraxis" :disable="roteOrPraxis==='rote'"/>
 										<q-tooltip class="warning" v-show="roteOrPraxis === 'rote'">
-											You must chose either Rote or Praxis.
+											You must choose either Rote or Praxis.
 										</q-tooltip>
 									</q-field>
 								</div>
@@ -219,7 +219,7 @@
 								</div>
 
 								<div :class="{ hidden: !subject.isResisted }" class="fieldset">
-									<q-field helper="If a spell has multiple Withstand ratings (eg. a Withstood spell cast with a Sympathetic Range Attainment or through the Gauntlet) it uses the highest rating, +1 for every additional rating.">
+									<q-field helper="If a spell has multiple Withstand ratings (eg. a Withstood spell cast with a Sympathetic Range Attainment or through the Gauntlet), it uses the highest rating, +1 for every additional rating.">
 										<h6>Number of Withstand Ratings</h6>
 										<q-input v-model="subject.numWithstands" type="number" :min="1"/>
 									</q-field>
@@ -271,7 +271,7 @@
 
 									<q-collapsible label="Advanced" group="casting-time" :opened="isAdvanced('castingTime')">
 
-										<q-field helper="Using more than one yantra (or High Speech) will increase this time.">
+										<q-field helper="Using more than one Yantra (or High Speech) will increase this time.">
 											<label>
 												<q-radio v-model="spell.factors.castingTime" val="a1"/>
 												<b>Quick casting time:</b>1 Turn </label>
@@ -612,7 +612,7 @@
 
 				<h5>
 					Yantras <br class="lt-md">
-					<small>Use locations, actions and tools to help form the spell's Imago.</small>
+					<small>Use locations, actions, and tools to help form the spell's Imago.</small>
 				</h5>
 
 				<div class="alert-bar alert-bar-info">
@@ -731,7 +731,7 @@
 
 							<q-card-main>
 								<div class="fieldset">
-									<q-field helper="Mitigates 1 Paradox Dice per Mana spent. Limited by Gnosis.">
+									<q-field helper="Mitigates 1 Paradox Die per Mana spent. Limited by Gnosis.">
 										<h6>Additional Mana Spent</h6>
 										<q-input v-model="paradox.manaSpent" type="number" :min="0" :max="maxMana"/>
 									</q-field>
@@ -1370,6 +1370,7 @@
 			desc: 'Must be spoken aloud. Cannot be used reflexively.',
 			bonus: 2,
 			unique: true
+      //doesn't yet add +1 turn to casting time
 		} ],
 		[ 'a4', {
 			name: 'Runes',
@@ -1721,7 +1722,7 @@
 
 				if ( this.isPrimaryFactor( 'duration' ) )
 				{
-					penalty -= ( this.caster.arcana - 1 )
+					penalty -= ( this.caster.arcana - 1 ) * 2
 				}
 
 				if ( penalty <= 0 )
