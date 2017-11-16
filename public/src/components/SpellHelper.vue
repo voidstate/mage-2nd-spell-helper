@@ -57,7 +57,7 @@
 						<span class="footer-chip-label gt-xs">Paradox</span> {{ paradoxDice }}
 					</span>
 					<q-tooltip class="warning">
-						You have exceeded the free reach from your Arcanum and must roll for Paradox
+						You have exceeded the free reach from your Arcanum and roll for Paradox
 					</q-tooltip>
 				</q-chip>
 			</q-toolbar-title>
@@ -155,7 +155,7 @@
 									<h6>Is the Spell a Rote?</h6>
 									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isRote" :disable="roteOrPraxis === 'praxis'"/>
 									<q-tooltip class="warning" v-show="roteOrPraxis === 'praxis'">
-										You must choose either Rote or Praxis.
+										You may only choose either Rote or Praxis.
 									</q-tooltip>
 								</div>
 
@@ -171,7 +171,7 @@
 										<h6>Is the Spell a Praxis?</h6>
 										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isPraxis" :disable="roteOrPraxis==='rote'"/>
 										<q-tooltip class="warning" v-show="roteOrPraxis === 'rote'">
-											You must choose either Rote or Praxis.
+											You may only choose either Rote or Praxis.
 										</q-tooltip>
 									</q-field>
 								</div>
