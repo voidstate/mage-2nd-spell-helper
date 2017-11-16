@@ -1370,7 +1370,6 @@
 			desc: 'Must be spoken aloud. Cannot be used reflexively.',
 			bonus: 2,
 			unique: true
-      //doesn't yet add +1 turn to casting time
 		} ],
 		[ 'a4', {
 			name: 'Runes',
@@ -2260,9 +2259,9 @@
 				// advanced
 				else
 				{
-					let turns = this.numYantras <= 1 ? 1 : this.numYantras - 1;
+					let turns = this.numYantras <= 1 ? 1 : this.numYantras;
 
-					if ( this.hasYantra( 'a2' ) )
+					if ( this.hasYantra( 'a3' ) )
 					{
 						turns++
 					}
