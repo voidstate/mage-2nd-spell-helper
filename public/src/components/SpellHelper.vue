@@ -2263,7 +2263,7 @@
 
 					if ( this.hasYantra( 'a3' ) )
 					{
-						turns++
+						turns = turns == 1 ? 2 : turns
 					}
 
 					return `${ turns } turn${ turns !== 1 ? 's' : '' }`
