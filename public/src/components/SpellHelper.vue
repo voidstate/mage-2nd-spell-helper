@@ -57,7 +57,7 @@
 						<span class="footer-chip-label gt-xs">Paradox</span> {{ paradoxDice }}
 					</span>
 					<q-tooltip class="warning">
-						You have exceeded the free reach from your Arcanum and must roll for Paradox
+						You have exceeded the free reach from your Arcanum and roll for Paradox
 					</q-tooltip>
 				</q-chip>
 			</q-toolbar-title>
@@ -155,7 +155,7 @@
 									<h6>Is the Spell a Rote?</h6>
 									<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isRote" :disable="roteOrPraxis === 'praxis'"/>
 									<q-tooltip class="warning" v-show="roteOrPraxis === 'praxis'">
-										You must chose either Rote or Praxis.
+										You may only choose either Rote or Praxis.
 									</q-tooltip>
 								</div>
 
@@ -167,11 +167,11 @@
 								</div>
 
 								<div class="fieldset">
-									<q-field helper="Praxes only require three successes for an exceptional success, and do not require a Mana if the spell if from a Common or Inferior arcanum.">
+									<q-field helper="Praxes only require three successes for an exceptional success, and do not require a Mana if the spell is from a Common or Inferior Arcanum.">
 										<h6>Is the Spell a Praxis?</h6>
 										<q-toggle checked-icon="ion-ios-checkmark-outline" unchecked-icon="ion-ios-close-outline" v-model="spell.isPraxis" :disable="roteOrPraxis==='rote'"/>
 										<q-tooltip class="warning" v-show="roteOrPraxis === 'rote'">
-											You must chose either Rote or Praxis.
+											You may only choose either Rote or Praxis.
 										</q-tooltip>
 									</q-field>
 								</div>
@@ -219,7 +219,7 @@
 								</div>
 
 								<div :class="{ hidden: !subject.isResisted }" class="fieldset">
-									<q-field helper="If a spell has multiple Withstand ratings (eg. a Withstood spell cast with a Sympathetic Range Attainment or through the Gauntlet) it uses the highest rating, +1 for every additional rating.">
+									<q-field helper="If a spell has multiple Withstand ratings (eg. a Withstood spell cast with a Sympathetic Range Attainment or through the Gauntlet), it uses the highest rating, +1 for every additional rating.">
 										<h6>Number of Withstand Ratings</h6>
 										<q-input v-model="subject.numWithstands" type="number" :min="1"/>
 									</q-field>
@@ -271,7 +271,7 @@
 
 									<q-collapsible label="Advanced" group="casting-time" :opened="isAdvanced('castingTime')">
 
-										<q-field helper="Using more than one yantra (or High Speech) will increase this time.">
+										<q-field helper="Using more than one Yantra (or High Speech) will increase this time.">
 											<label>
 												<q-radio v-model="spell.factors.castingTime" val="a1"/>
 												<b>Quick casting time:</b>1 Turn </label>
@@ -612,7 +612,7 @@
 
 				<h5>
 					Yantras <br class="lt-md">
-					<small>Use locations, actions and tools to help form the spell's Imago.</small>
+					<small>Use locations, actions, and tools to help form the spell's Imago.</small>
 				</h5>
 
 				<div class="alert-bar alert-bar-info">
@@ -700,6 +700,8 @@
 								<div class="fieldset" v-show="paradox.sleepers">
 									<q-field helper="Multiple Sleeper witnesses do not add Paradox dice, but increase the chances of a Paradox occurring. If a few Sleepers witness the magic casting, the Paradox roll gains the 9-Again quality, a large group grants the Paradox roll the 8-Again quality, and a full crowd grants the Paradox roll the rote quality.">
 										<h6>How Many Sleeper Witnesses?</h6>
+                    <q-radio v-model="paradox.sleeperGroupSize" val="on" label="Just one"/>
+										<br>
 										<q-radio v-model="paradox.sleeperGroupSize" val="sm" label="A few"/>
 										<br>
 										<q-radio v-model="paradox.sleeperGroupSize" val="md" label="A large group"/>
@@ -731,7 +733,7 @@
 
 							<q-card-main>
 								<div class="fieldset">
-									<q-field helper="Mitigates 1 Paradox Dice per Mana spent. Limited by Gnosis.">
+									<q-field helper="Mitigates 1 Paradox Die per Mana spent. Limited by Gnosis.">
 										<h6>Additional Mana Spent</h6>
 										<q-input v-model="paradox.manaSpent" type="number" :min="0" :max="maxMana"/>
 									</q-field>
@@ -1489,7 +1491,7 @@
 				inured: false,
 				previousRolls: 0,
 				sleepers: false,
-				sleeperGroupSize: 'sm',
+				sleeperGroupSize: 'on',
 				manaSpent: 0
 			},
 			settings: {
@@ -1669,9 +1671,14 @@
 				let pool,
 				    mustRoll
 
-				pool = ( this.freeReach - this.usedReach ) * -1
-
-				mustRoll = pool > 0
+				pool = 0
+        mustRoll = false
+        
+        if ( this.usedReach > this.freeReach )
+        {
+          pool += ( this.freeReach - this.usedReach ) * -1
+          mustRoll = true
+        }
 
 				// gnosis multiplies paradox from additional reach
 				pool *= this.baseParadoxDice
@@ -1721,7 +1728,7 @@
 
 				if ( this.isPrimaryFactor( 'duration' ) )
 				{
-					penalty -= ( this.caster.arcana - 1 )
+					penalty -= ( this.caster.arcana - 1 ) * 2
 				}
 
 				if ( penalty <= 0 )
@@ -2223,7 +2230,7 @@
 					{
 						summary += ' (with the 8-again quality)'
 					}
-					else
+					else if ( this.paradox.sleeperGroupSize === 'lg' )
 					{
 						summary += ' (with the rote quality)'
 					}
@@ -2259,11 +2266,11 @@
 				// advanced
 				else
 				{
-					let turns = this.numYantras <= 1 ? 1 : this.numYantras - 1;
+					let turns = this.numYantras <= 1 ? 1 : this.numYantras;
 
-					if ( this.hasYantra( 'a2' ) )
+					if ( this.hasYantra( 'a3' ) )
 					{
-						turns++
+						turns = turns == 1 ? 2 : turns
 					}
 
 					return `${ turns } turn${ turns !== 1 ? 's' : '' }`

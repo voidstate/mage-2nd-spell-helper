@@ -1,4 +1,4 @@
-# Mage: The Ascension 2nd Edition Improvised Spell Helper
+# Mage: The Awakening 2nd Edition Improvised Spell Helper
 
 > A Quasar project
 
