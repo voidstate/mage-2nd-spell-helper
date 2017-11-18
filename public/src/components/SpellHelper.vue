@@ -1671,9 +1671,14 @@
 				let pool,
 				    mustRoll
 
-				pool = ( this.freeReach - this.usedReach ) * -1
-
-				mustRoll = pool > 0
+				pool = 0
+        mustRoll = false
+        
+        if ( this.usedReach > this.freeReach )
+        {
+          pool += ( this.freeReach - this.usedReach ) * -1
+          mustRoll = true
+        }
 
 				// gnosis multiplies paradox from additional reach
 				pool *= this.baseParadoxDice
