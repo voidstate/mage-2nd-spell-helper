@@ -700,6 +700,8 @@
 								<div class="fieldset" v-show="paradox.sleepers">
 									<q-field helper="Multiple Sleeper witnesses do not add Paradox dice, but increase the chances of a Paradox occurring. If a few Sleepers witness the magic casting, the Paradox roll gains the 9-Again quality, a large group grants the Paradox roll the 8-Again quality, and a full crowd grants the Paradox roll the rote quality.">
 										<h6>How Many Sleeper Witnesses?</h6>
+                    <q-radio v-model="paradox.sleeperGroupSize" val="on" label="Just one"/>
+										<br>
 										<q-radio v-model="paradox.sleeperGroupSize" val="sm" label="A few"/>
 										<br>
 										<q-radio v-model="paradox.sleeperGroupSize" val="md" label="A large group"/>
@@ -1489,7 +1491,7 @@
 				inured: false,
 				previousRolls: 0,
 				sleepers: false,
-				sleeperGroupSize: 'sm',
+				sleeperGroupSize: 'on',
 				manaSpent: 0
 			},
 			settings: {
@@ -2223,7 +2225,7 @@
 					{
 						summary += ' (with the 8-again quality)'
 					}
-					else
+					else if ( this.paradox.sleeperGroupSize === 'lg' )
 					{
 						summary += ' (with the rote quality)'
 					}
